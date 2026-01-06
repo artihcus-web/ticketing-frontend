@@ -18,7 +18,6 @@ const Login = () => {
     setEmail("");
     setPassword("");
   }, []);
- 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
