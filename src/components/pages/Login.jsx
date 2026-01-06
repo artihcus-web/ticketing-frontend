@@ -1,0 +1,171 @@
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { apiRequest } from "../../utils/api.js";
+import { useAuth } from "../../context/AuthContext.jsx";
+import artihcusLogo from '../../assets/AMS.png';
+ 
+const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+ 
+  useEffect(() => {
+    setEmail("");
+    setPassword("");
+  }, []);
+ 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+    try {
+      // Call backend API for login
+      const response = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.success) {
+        setError(response.error || "Invalid email or password");
+        return;
+      }
+
+      // Login using AuthContext (stores token and user data)
+      login(response.token, response.user);
+
+      // 🚀 Redirect based on role or redirect param
+      const params = new URLSearchParams(location.search);
+      const redirect = params.get('redirect');
+      if (redirect) {
+        navigate(redirect, { replace: true });
+        return;
+      }
+      
+      // Use redirectPath from backend response
+      navigate(response.redirectPath || "/access-denied", { replace: true });
+
+    } catch (err) {
+      console.error("Login error:", err);
+      if (err.message?.includes('Invalid email or password') || 
+          err.message?.includes('invalid-credential') || 
+          err.message?.includes('user-not-found') || 
+          err.message?.includes('wrong-password')) {
+        setError("Invalid email or password");
+      } else if (err.message?.includes('deleted by the admin')) {
+        setError('Your account has been deleted by the admin.');
+      } else if (err.message?.includes('disabled by the admin')) {
+        setError('Your account has been disabled by the admin.');
+      } else {
+        setError(err.message || "An unexpected error occurred. Please try again.");
+      }
+    }
+  };
+ 
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-sm lg:w-96 mx-auto">
+        <div className="flex justify-center mb-6">
+          <img src={artihcusLogo} alt="Artihcus Logo" className="h-16 w-auto" />
+        </div>
+        <div>
+          <h2 className="text-4xl font-bold text-gray-900 mb-2">
+            Welcome!
+          </h2>
+          <p className="text-gray-600 mb-8">
+            Simplify your workflow and boost your productivity<br />
+            with Artihcus. <span className="text-orange-500 font-medium">Get started ..</span>
+          </p>
+        </div>
+ 
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+ 
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-full bg-gray-50 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+ 
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              required
+              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full bg-gray-50 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div
+              className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer"
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? (
+                <FaEyeSlash className="h-5 w-5 text-gray-400" />
+              ) : (
+                <FaEye className="h-5 w-5 text-gray-400" />
+              )}
+            </div>
+          </div>
+ 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="text-sm text-gray-600 hover:text-gray-800"
+              onClick={() => navigate("/forgot-password")}
+            >
+              Forgot Password?
+            </button>
+          </div>
+ 
+          <button
+            type="submit"
+            className="w-full bg-orange-500 text-white py-3 px-4 rounded-full font-medium hover:bg-orange-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200"
+          >
+            Login
+          </button>
+        </form>
+ 
+       
+      </div>
+    </div>
+  );
+};
+ 
+export default Login;
+ 
+ 
