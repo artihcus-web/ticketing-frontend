@@ -68,9 +68,14 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
         let currentProject = null;
         if (selectedProjectId) {
           // Fetch project name for display if needed
-          const projectResponse = await apiRequest(`/projects/${selectedProjectId}`, { method: 'GET' });
-          if (projectResponse.success && projectResponse.project) {
-            currentProject = projectResponse.project.name;
+          try {
+            const projectResponse = await apiRequest(`/projects/${selectedProjectId}`, { method: 'GET' });
+            if (projectResponse.success && projectResponse.project) {
+              currentProject = projectResponse.project.name;
+            }
+          } catch (err) {
+            console.warn('Error fetching project details, falling back to user project:', err);
+            // Continue to fallback logic below
           }
         }
         
