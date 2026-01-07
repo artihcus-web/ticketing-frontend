@@ -49,7 +49,19 @@ export const apiRequest = async (endpoint, options = {}) => {
   } catch (error) {
     // Handle network errors (connection refused, timeout, etc.)
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new Error(`Cannot connect to server. Please make sure the backend is running on ${API_BASE_URL}`);
+      // Log helpful debug info in development
+      if (import.meta.env.DEV) {
+        console.error('API Request Failed:', {
+          url,
+          apiBaseUrl: API_BASE_URL,
+          error: error.message
+        });
+      }
+      // Check if trying to connect to localhost in production
+      if (API_BASE_URL.includes('localhost') && window.location.hostname !== 'localhost') {
+        throw new Error(`Configuration error: Frontend is trying to connect to localhost. Please set VITE_API_BASE_URL environment variable in your deployment platform to your backend URL.`);
+      }
+      throw new Error(`Cannot connect to server at ${API_BASE_URL}. Please check your backend is running and accessible.`);
     }
     // Re-throw other errors (including our custom Error from above)
     throw error;
