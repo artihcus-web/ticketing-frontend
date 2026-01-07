@@ -702,12 +702,11 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         }
       }
       
-      // Update ticket with resolution
+      // Update ticket with resolution (keep current status, don't change it)
       const updateResponse = await apiRequest(`/tickets/${ticket.id}`, {
         method: 'PUT',
         body: JSON.stringify({
           resolution: resolutionText,
-          status: resolutionStatus,
           resolutionAttachments: resolutionAttachments,
         }),
       });
@@ -1345,7 +1344,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                         disabled={isSaving}
                       >
                         {statusOptions.map(opt => (
-                          <option key={opt.value} value={opt.value} disabled={opt.value === 'Resolved' && !(ticket.assignedTo && ticket.assignedTo.email)}>{opt.label}</option>
+                          <option key={opt.value} value={opt.value} disabled={opt.value === 'Resolved' && !(ticket.assignedTo && ticket.assignedTo.email) && !resolutionText.trim() && !ticket.resolution}>{opt.label}</option>
                         ))}
                       </select>
                     ) : (
@@ -1465,7 +1464,6 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                 formats={['header', 'bold', 'italic', 'underline', 'strike', 'list', 'bullet', 'link', 'image']}
                 className="bg-white rounded-xl border-2 border-gray-200 focus:border-blue-500 min-h-[120px]"
                 placeholder="Add a resolution... (You can paste screenshots directly here)"
-                readOnly={!(ticket.assignedTo && ticket.assignedTo.email)}
               />
               {/* Render preview thumbnails for images in the resolution */}
               {resolutionText && (
@@ -1480,9 +1478,8 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                 accept="image/*,application/pdf,video/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
                 onChange={handleResolutionAttachmentChange}
                 className="hidden"
-                disabled={!(ticket.assignedTo && ticket.assignedTo.email)}
               />
-              <label htmlFor="resolution-attachment-input" className={`inline-flex items-center cursor-pointer text-blue-600 hover:text-blue-800 mb-2 ${!(ticket.assignedTo && ticket.assignedTo.email) ? 'opacity-50 pointer-events-none' : ''}`}
+              <label htmlFor="resolution-attachment-input" className="inline-flex items-center cursor-pointer text-blue-600 hover:text-blue-800 mb-2"
               >
                 <Paperclip className="w-5 h-5 mr-1" />
                 <span>Choose file(s)</span>
@@ -1491,7 +1488,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                 <button
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold disabled:opacity-50"
                   onClick={handleSaveResolution}
-                  disabled={isSavingResolution || !resolutionText.trim() || !resolutionStatus || !(ticket.assignedTo && ticket.assignedTo.email)}
+                  disabled={isSavingResolution || !resolutionText.trim()}
                 >
                   {isSavingResolution ? 'Saving...' : 'Submit'}
                 </button>

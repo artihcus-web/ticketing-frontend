@@ -9,7 +9,16 @@ import PropTypes from 'prop-types';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 
-const EmployeeTickets = ({ selectedProjectId }) => {
+// Helper function to safely convert date (handles both Firestore Timestamp and Date objects)
+const safeToDate = (dateValue) => {
+  if (!dateValue) return null;
+  if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+    return dateValue.toDate();
+  }
+  return new Date(dateValue);
+};
+
+const EmployeeTickets = ({ selectedProjectId = null }) => {
   const { user } = useAuth();
   const [ticketsData, setTicketsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -780,7 +789,9 @@ const EmployeeTickets = ({ selectedProjectId }) => {
                       {ticket.reportedBy || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {ticket.lastUpdated ? new Date(ticket.lastUpdated.toDate()).toLocaleString() : 'N/A'}
+                      {ticket.lastUpdated 
+                        ? safeToDate(ticket.lastUpdated)?.toLocaleString() || 'N/A'
+                        : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {ticket.assignedTo ? (ticket.assignedTo.name || ticket.assignedTo.email) : '-'}
@@ -798,10 +809,6 @@ const EmployeeTickets = ({ selectedProjectId }) => {
       )}
     </div>
   );
-};
-
-EmployeeTickets.defaultProps = {
-  selectedProjectId: null,
 };
 
 EmployeeTickets.propTypes = {
