@@ -110,31 +110,31 @@ function Admin() {
     fetchUsers();
     fetchTicketStats();
     fetchProjects();
- 
+
     // Handle clicks outside the dropdown
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowLogoutDropdown(false);
       }
     };
- 
+
     if (showLogoutDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
     }
- 
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showLogoutDropdown]); // Re-run effect when dropdown visibility changes
- 
+
   const fetchStats = async () => {
     try {
       const response = await apiRequest('/admin/stats', {
         method: 'GET',
       });
-      
+
       if (response.success && response.stats) {
         setStats(response.stats);
       }
@@ -150,7 +150,7 @@ function Admin() {
       const response = await apiRequest('/admin/users', {
         method: 'GET',
       });
-      
+
       if (response.success && response.users) {
         setUsers(response.users);
       }
@@ -164,7 +164,7 @@ function Admin() {
       const response = await apiRequest('/admin/ticket-stats', {
         method: 'GET',
       });
-      
+
       if (response.success && response.ticketStats) {
         // Convert date strings to Date objects for ticketsOverTime
         const ticketStats = {
@@ -186,7 +186,7 @@ function Admin() {
       const response = await apiRequest('/admin/projects', {
         method: 'GET',
       });
-      
+
       if (response.success && response.projects) {
         setAllProjects(response.projects);
       }
@@ -211,13 +211,13 @@ function Admin() {
   const handleLogoutCancel = () => {
     setShowLogoutModal(false);
   };
- 
+
   const handleNavigation = (tab) => {
     setActiveTab(tab);
     // The navigation logic is now handled by the renderContent function based on activeTab
     // No need to use navigate here for internal tab changes within Admin component
   };
- 
+
   // Sidebar items for navigation
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, active: activeTab === 'dashboard' },
@@ -232,11 +232,10 @@ function Admin() {
       <button
         key={item.id}
         onClick={() => handleNavigation(item.id)}
-        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${
-          item.active
-            ? 'bg-gradient-to-r from-[#FFA14A] to-[#FFB86C] text-white shadow-lg'
-            : 'text-gray-600 hover:bg-orange-100 hover:text-orange-700'
-        }`}
+        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${item.active
+          ? 'bg-gradient-to-r from-[#FFA14A] to-[#FFB86C] text-white shadow-lg'
+          : 'text-gray-600 hover:bg-orange-100 hover:text-orange-700'
+          }`}
         title={isSidebarCollapsed ? item.label : ''}
       >
         <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : ''}`}>
@@ -282,11 +281,11 @@ function Admin() {
 
   // Filter users based on search and filter
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
+    const matchesSearch =
       user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.company?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     if (userFilter === 'all') return matchesSearch;
     return user.userType === userFilter && matchesSearch;
   });
@@ -324,31 +323,28 @@ function Admin() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setUserFilter('all')}
-            className={`px-4 py-2 rounded-xl transition-all duration-200 ${
-              userFilter === 'all'
-                ? 'bg-orange-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-orange-50'
-            }`}
+            className={`px-4 py-2 rounded-xl transition-all duration-200 ${userFilter === 'all'
+              ? 'bg-orange-600 text-white'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-orange-50'
+              }`}
           >
             All
           </button>
           <button
             onClick={() => setUserFilter('employee')}
-            className={`px-4 py-2 rounded-xl transition-all duration-200 ${
-              userFilter === 'employee'
-                ? 'bg-orange-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-orange-50'
-            }`}
+            className={`px-4 py-2 rounded-xl transition-all duration-200 ${userFilter === 'employee'
+              ? 'bg-orange-600 text-white'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-orange-50'
+              }`}
           >
             Employees
           </button>
           <button
             onClick={() => setUserFilter('client')}
-            className={`px-4 py-2 rounded-xl transition-all duration-200 ${
-              userFilter === 'client'
-                ? 'bg-orange-600 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-orange-50'
-            }`}
+            className={`px-4 py-2 rounded-xl transition-all duration-200 ${userFilter === 'client'
+              ? 'bg-orange-600 text-white'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-orange-50'
+              }`}
           >
             Clients
           </button>
@@ -361,9 +357,8 @@ function Admin() {
           <div key={user.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  user.userType === 'client' ? 'bg-purple-100' : 'bg-orange-100'
-                }`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${user.userType === 'client' ? 'bg-purple-100' : 'bg-orange-100'
+                  }`}>
                   {user.userType === 'client' ? (
                     <User className="w-6 h-6 text-purple-600" />
                   ) : (
@@ -375,15 +370,14 @@ function Admin() {
                   <p className="text-sm text-gray-600">{user.email}</p>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                user.status === 'active'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.status === 'active'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-800'
+                }`}>
                 {user.status || 'pending'}
               </span>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center text-gray-600">
                 <Phone className="w-4 h-4 mr-2" />
@@ -575,14 +569,12 @@ function Admin() {
                   key={ticket.id}
                   className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors"
                 >
-                  <div className={`p-2 rounded-lg ${
-                    ticket.priority === 'High' ? 'bg-red-100' :
+                  <div className={`p-2 rounded-lg ${ticket.priority === 'High' ? 'bg-red-100' :
                     ticket.priority === 'Medium' ? 'bg-yellow-100' : 'bg-green-100'
-                  }`}>
-                    <Ticket className={`w-4 h-4 ${
-                      ticket.priority === 'High' ? 'text-red-600' :
+                    }`}>
+                    <Ticket className={`w-4 h-4 ${ticket.priority === 'High' ? 'text-red-600' :
                       ticket.priority === 'Medium' ? 'text-yellow-600' : 'text-green-600'
-                    }`} />
+                      }`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
@@ -594,12 +586,11 @@ function Admin() {
                         : 'Date not available'}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    ticket.status === 'Open' ? 'bg-green-100 text-green-800' :
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ticket.status === 'Open' ? 'bg-green-100 text-green-800' :
                     ticket.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                    ticket.status === 'Resolved' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
+                      ticket.status === 'Resolved' ? 'bg-purple-100 text-purple-800' :
+                        'bg-gray-100 text-gray-800'
+                    }`}>
                     {ticket.status}
                   </span>
                 </div>
@@ -631,9 +622,8 @@ function Admin() {
       <div className="flex">
         {/* Sidebar */}
         <div
-          className={`bg-white border-r border-gray-200 transition-all duration-300 ${
-            isSidebarCollapsed ? 'w-20' : 'w-64'
-          } min-h-screen flex flex-col`}
+          className={`fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'
+            } h-screen flex flex-col`}
         >
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -689,9 +679,9 @@ function Admin() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 min-w-0">
+        <div className={`flex-1 min-w-0 transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'} flex flex-col h-screen`}>
           {/* Header */}
-          <header className="bg-white shadow-sm border-b border-gray-200">
+          <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0 z-20">
             <div className="flex items-center justify-between px-6 py-4">
               <div className="flex items-center space-x-4">
                 <button
@@ -706,7 +696,7 @@ function Admin() {
                 </div>
               </div>
               <div className="flex items-center space-x-4">
-                
+
                 <button
                   onClick={handleLogoutClick}
                   className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -719,7 +709,7 @@ function Admin() {
           </header>
 
           {/* Content Area */}
-          <main className="p-6">
+          <main className="p-6 flex-1 overflow-y-auto">
             {renderContent()}
           </main>
         </div>
@@ -808,11 +798,10 @@ function Admin() {
                     <button
                       type="button"
                       onClick={() => setUserFormData({ ...userFormData, userType: 'employee', role: 'employee' })}
-                      className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${
-                        userFormData.userType === 'employee'
-                          ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
-                          : 'border-gray-200 hover:border-orange-200'
-                      }`}
+                      className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${userFormData.userType === 'employee'
+                        ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
+                        : 'border-gray-200 hover:border-orange-200'
+                        }`}
                     >
                       <div className="text-center">
                         <Briefcase className="w-6 h-6 mx-auto mb-2" />
@@ -822,11 +811,10 @@ function Admin() {
                     <button
                       type="button"
                       onClick={() => setUserFormData({ ...userFormData, userType: 'client', role: 'client' })}
-                      className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${
-                        userFormData.userType === 'client'
-                          ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
-                          : 'border-gray-200 hover:border-orange-200'
-                      }`}
+                      className={`flex items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 ${userFormData.userType === 'client'
+                        ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
+                        : 'border-gray-200 hover:border-orange-200'
+                        }`}
                     >
                       <div className="text-center">
                         <User className="w-6 h-6 mx-auto mb-2" />
@@ -844,22 +832,20 @@ function Admin() {
                         <button
                           type="button"
                           onClick={() => setUserFormData({ ...userFormData, role: 'employee' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                            userFormData.role === 'employee'
-                              ? 'border-orange-500 bg-orange-50 text-orange-700'
-                              : 'border-gray-200 hover:border-orange-200'
-                          }`}
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${userFormData.role === 'employee'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-gray-200 hover:border-orange-200'
+                            }`}
                         >
                           Employee
                         </button>
                         <button
                           type="button"
                           onClick={() => setUserFormData({ ...userFormData, role: 'manager' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                            userFormData.role === 'manager'
-                              ? 'border-orange-500 bg-orange-50 text-orange-700'
-                              : 'border-gray-200 hover:border-orange-200'
-                          }`}
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${userFormData.role === 'manager'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-gray-200 hover:border-orange-200'
+                            }`}
                         >
                           Project Manager
                         </button>
@@ -869,22 +855,20 @@ function Admin() {
                         <button
                           type="button"
                           onClick={() => setUserFormData({ ...userFormData, role: 'client' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                            userFormData.role === 'client'
-                              ? 'border-orange-500 bg-orange-50 text-orange-700'
-                              : 'border-gray-200 hover:border-orange-200'
-                          }`}
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${userFormData.role === 'client'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-gray-200 hover:border-orange-200'
+                            }`}
                         >
                           Client
                         </button>
                         <button
                           type="button"
                           onClick={() => setUserFormData({ ...userFormData, role: 'head' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                            userFormData.role === 'head'
-                              ? 'border-orange-500 bg-orange-50 text-orange-700'
-                              : 'border-gray-200 hover:border-orange-200'
-                          }`}
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${userFormData.role === 'head'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-gray-200 hover:border-orange-200'
+                            }`}
                         >
                           Client Manager
                         </button>
@@ -939,4 +923,3 @@ function Admin() {
 }
 
 export default Admin;
- 
