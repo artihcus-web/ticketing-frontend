@@ -92,7 +92,7 @@ const getStatusBadge = (status) => {
 };
 
 const ClientHeadDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [tickets, setTickets] = useState([]);
@@ -103,7 +103,7 @@ const ClientHeadDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [clientHeadName, setClientHeadName] = useState('');
   const [stats, setStats] = useState({
-   
+
     pendingTickets: 0,
     resolvedTickets: 0
   });
@@ -143,7 +143,7 @@ const ClientHeadDashboard = () => {
   const getKpiFilteredTickets = () => {
     if (kpiPeriod) {
       // Period filter takes precedence
-    const now = new Date();
+      const now = new Date();
       let monthsToShow = 3;
       if (kpiPeriod === 'last6months') monthsToShow = 6;
       if (kpiPeriod === 'lastyear') monthsToShow = 12;
@@ -229,15 +229,15 @@ const ClientHeadDashboard = () => {
           if (kpi.avgResponse) { responseSum += kpi.avgResponse; responseCount++; }
           if (kpi.avgResolution) { resolutionSum += kpi.avgResolution; resolutionCount++; }
         });
-        const response = responseCount ? Number((responseSum/responseCount/1000/60).toFixed(2)) : 0;
-        const resolution = resolutionCount ? Number((resolutionSum/resolutionCount/1000/60).toFixed(2)) : 0;
+        const response = responseCount ? Number((responseSum / responseCount / 1000 / 60).toFixed(2)) : 0;
+        const resolution = resolutionCount ? Number((resolutionSum / resolutionCount / 1000 / 60).toFixed(2)) : 0;
         return { period: label, open, inProgress, resolved, closed, unclosed, breached, response, resolution };
       });
     } else {
       // Group by month for period/year
       let months = [];
       if (kpiPeriod) {
-    const now = new Date();
+        const now = new Date();
         let monthsToShow = 3;
         if (kpiPeriod === 'last6months') monthsToShow = 6;
         if (kpiPeriod === 'lastyear') monthsToShow = 12;
@@ -274,8 +274,8 @@ const ClientHeadDashboard = () => {
           if (kpi.avgResponse) { responseSum += kpi.avgResponse; responseCount++; }
           if (kpi.avgResolution) { resolutionSum += kpi.avgResolution; resolutionCount++; }
         });
-        const response = responseCount ? Number((responseSum/responseCount/1000/60).toFixed(2)) : 0;
-        const resolution = resolutionCount ? Number((resolutionSum/resolutionCount/1000/60).toFixed(2)) : 0;
+        const response = responseCount ? Number((responseSum / responseCount / 1000 / 60).toFixed(2)) : 0;
+        const resolution = resolutionCount ? Number((resolutionSum / resolutionCount / 1000 / 60).toFixed(2)) : 0;
         return { period: label, open, inProgress, resolved, closed, unclosed, breached, response, resolution };
       });
     }
@@ -287,8 +287,8 @@ const ClientHeadDashboard = () => {
       navigate('/login');
     }
   }, [user, navigate]);
-   // Handle URL parameters for tab navigation
-   useEffect(() => {
+  // Handle URL parameters for tab navigation
+  useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam && ['dashboard', 'tickets', 'create', 'clients'].includes(tabParam)) {
       setActiveTab(tabParam);
@@ -296,10 +296,10 @@ const ClientHeadDashboard = () => {
   }, [searchParams]);
   useEffect(() => {
     if (!user) return;
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchProjects = async () => {
       try {
         if (isInitialLoad) {
@@ -323,9 +323,9 @@ const ClientHeadDashboard = () => {
         }
       }
     };
-    
+
     fetchProjects();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -336,9 +336,9 @@ const ClientHeadDashboard = () => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -352,9 +352,9 @@ const ClientHeadDashboard = () => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -363,17 +363,17 @@ const ClientHeadDashboard = () => {
 
   // Track last selectedProjectId to determine if it's a new selection
   const lastProjectIdRef = useRef(null);
-  
+
   useEffect(() => {
     if (!user || !selectedProjectId || !projects.length) return;
-    
+
     const isNewProject = lastProjectIdRef.current !== selectedProjectId;
     if (isNewProject) {
       lastProjectIdRef.current = selectedProjectId;
     }
-    
+
     let interval = null;
-    
+
     const fetchTickets = async (showLoading = false) => {
       try {
         if (showLoading) {
@@ -388,11 +388,11 @@ const ClientHeadDashboard = () => {
           }
           return;
         }
-        
+
         const response = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProjectName)}`, {
           method: 'GET',
         });
-        
+
         if (response.success && response.tickets) {
           const ticketsData = response.tickets.map(ticket => ({
             ...ticket,
@@ -410,10 +410,10 @@ const ClientHeadDashboard = () => {
         }
       }
     };
-    
+
     // Only show loading when project actually changes
     fetchTickets(isNewProject);
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -424,9 +424,9 @@ const ClientHeadDashboard = () => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -440,9 +440,9 @@ const ClientHeadDashboard = () => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -451,11 +451,11 @@ const ClientHeadDashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        
+
         // Get user data
         const userResponse = await apiRequest('/dashboards/user', { method: 'GET' });
         if (userResponse.success && userResponse.user) {
@@ -472,13 +472,13 @@ const ClientHeadDashboard = () => {
           }
           setClientHeadName(displayName);
         }
-        
+
         // Fetch clients
         const clientsResponse = await apiRequest('/dashboards/clients', { method: 'GET' });
         if (clientsResponse.success && clientsResponse.clients) {
           setClients(clientsResponse.clients);
         }
-        
+
         // Update stats
         setStats({
           totalClients: clients.length,
@@ -492,7 +492,7 @@ const ClientHeadDashboard = () => {
         setLoading(false);
       }
     };
-    
+
     fetchDashboardData();
   }, [user, projects, tickets, clients.length]);
   const handleLogout = async () => {
@@ -528,11 +528,10 @@ const ClientHeadDashboard = () => {
           setActiveTab(item.id);
           setSidebarOpen(false);
         }}
-        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${
-          item.active
+        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${item.active
             ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        }`}
+          }`}
         title={sidebarCollapsed ? item.label : ''}
       >
         <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
@@ -660,7 +659,7 @@ const ClientHeadDashboard = () => {
     const img = new window.Image();
     const svg = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgString)));
     return new Promise(resolve => {
-      img.onload = function() {
+      img.onload = function () {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
         resolve(canvas.toDataURL('image/png'));
@@ -674,14 +673,14 @@ const ClientHeadDashboard = () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('KPI Report');
     // Add table data first
-    worksheet.addRow(['Ticket #','Subject','Assignee','Response Time (min)', 'Resolution Time (min)', 'Status']);
+    worksheet.addRow(['Ticket #', 'Subject', 'Assignee', 'Response Time (min)', 'Resolution Time (min)', 'Status']);
     kpiData.details.forEach(row => {
       worksheet.addRow([
         row.ticketNumber,
         row.subject,
         row.assignee,
-        row.responseTime ? (row.responseTime/1000/60).toFixed(2) : '',
-        row.resolutionTime ? (row.resolutionTime/1000/60).toFixed(2) : '',
+        row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : '',
+        row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : '',
         row.status
       ]);
     });
@@ -702,7 +701,7 @@ const ClientHeadDashboard = () => {
     saveAs(new Blob([buffer]), `KPI_Report_${projectName || 'Project'}.xlsx`);
   }
 
-  if (!authChecked || loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -734,7 +733,7 @@ const ClientHeadDashboard = () => {
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0,0,0,0);
+    startOfWeek.setHours(0, 0, 0, 0);
     filteredMyTickets = myTickets.filter(t => {
       const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
       return created && created >= startOfWeek && created <= now;
@@ -767,10 +766,10 @@ const ClientHeadDashboard = () => {
     } else if (kpiSelectedYear) {
       const from = new Date(kpiSelectedYear, 0, 1);
       const to = new Date(kpiSelectedYear, 11, 31, 23, 59, 59, 999);
-    filteredMyTickets = myTickets.filter(t => {
-      const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
-      return created && created >= from && created <= to;
-    });
+      filteredMyTickets = myTickets.filter(t => {
+        const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
+        return created && created >= from && created <= to;
+      });
     }
   }
 
@@ -831,7 +830,7 @@ const ClientHeadDashboard = () => {
           <div>Resolved - {resolved}</div>
           <div>Closed - {closed}</div>
           <div>Unclosed - {unclosed}</div>
-        </div> 
+        </div>
       );
     }
     return null;
@@ -931,20 +930,20 @@ const ClientHeadDashboard = () => {
                 {/* Stats Grid */}
                 {/* Year Filter Dropdown */}
                 <div className="col-span-1 flex items-center mb-2">
-                    <label className="mr-2 font-semibold text-gray-700">Year:</label>
-                    <select
-                      className="border rounded px-2 py-1 text-sm"
-                      value={statsYearFilter}
-                      onChange={e => setStatsYearFilter(e.target.value)}
-                    >
-                      <option value="current">Current Year ({currentYear})</option>
-                      <option value="last">Last Year ({lastYear})</option>
-                    </select>
-                  </div>
+                  <label className="mr-2 font-semibold text-gray-700">Year:</label>
+                  <select
+                    className="border rounded px-2 py-1 text-sm"
+                    value={statsYearFilter}
+                    onChange={e => setStatsYearFilter(e.target.value)}
+                  >
+                    <option value="current">Current Year ({currentYear})</option>
+                    <option value="last">Last Year ({lastYear})</option>
+                  </select>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-                  
+
                   {/* Unclosed Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveTab('tickets');
                       sessionStorage.setItem('ticketFilter', JSON.stringify({
@@ -967,7 +966,7 @@ const ClientHeadDashboard = () => {
                     </div>
                   </button>
                   {/* Closed Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveTab('tickets');
                       sessionStorage.setItem('ticketFilter', JSON.stringify({
@@ -990,7 +989,7 @@ const ClientHeadDashboard = () => {
                     </div>
                   </button>
                   {/* Open Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveTab('tickets');
                       sessionStorage.setItem('ticketFilter', JSON.stringify({
@@ -1013,7 +1012,7 @@ const ClientHeadDashboard = () => {
                     </div>
                   </button>
                   {/* In Progress Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveTab('tickets');
                       sessionStorage.setItem('ticketFilter', JSON.stringify({
@@ -1036,7 +1035,7 @@ const ClientHeadDashboard = () => {
                     </div>
                   </button>
                   {/* Resolved Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveTab('tickets');
                       sessionStorage.setItem('ticketFilter', JSON.stringify({
@@ -1062,7 +1061,7 @@ const ClientHeadDashboard = () => {
 
                 {/* My Project Tickets Table */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mt-6">
-                  
+
                   <div className="flex flex-wrap gap-4 mb-4 items-end">
                     <div>
                       <label className="block text-xs font-semibold text-gray-600 mb-1">From Date</label>
@@ -1107,56 +1106,55 @@ const ClientHeadDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredMyTickets
-                              .filter(ticket => {
-                                const created = ticket.created?.toDate ? ticket.created.toDate() : (ticket.created ? new Date(ticket.created) : null);
-                                return created && created.getFullYear() === yearToFilter;
-                              })
-                              .sort((a, b) => {
-                                const dateA = a.created?.toDate ? a.created.toDate() : new Date(a.created);
-                                const dateB = b.created?.toDate ? b.created.toDate() : new Date(b.created);
-                                return dateB - dateA;
-                              })
-                              .map((ticket, idx) => {
-                                // Calculate response/resolution time and breached
-                                const kpi = computeKPIsForTickets([ticket]);
-                                const detail = kpi.details[0] || {};
-                                return (
-                                  <tr
-                                    key={ticket.id || idx}
-                                    onClick={() => setSelectedTicketId(ticket.id)}
-                                    className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                                  >
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                      {ticket.assignedTo
-                                        ? (typeof ticket.assignedTo === 'object'
-                                            ? (ticket.assignedTo.name || ticket.assignedTo.email)
-                                            : ticket.assignedTo)
-                                        : '-'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.priority}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                        ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+                          {filteredMyTickets
+                            .filter(ticket => {
+                              const created = ticket.created?.toDate ? ticket.created.toDate() : (ticket.created ? new Date(ticket.created) : null);
+                              return created && created.getFullYear() === yearToFilter;
+                            })
+                            .sort((a, b) => {
+                              const dateA = a.created?.toDate ? a.created.toDate() : new Date(a.created);
+                              const dateB = b.created?.toDate ? b.created.toDate() : new Date(b.created);
+                              return dateB - dateA;
+                            })
+                            .map((ticket, idx) => {
+                              // Calculate response/resolution time and breached
+                              const kpi = computeKPIsForTickets([ticket]);
+                              const detail = kpi.details[0] || {};
+                              return (
+                                <tr
+                                  key={ticket.id || idx}
+                                  onClick={() => setSelectedTicketId(ticket.id)}
+                                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                                >
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {ticket.assignedTo
+                                      ? (typeof ticket.assignedTo === 'object'
+                                        ? (ticket.assignedTo.name || ticket.assignedTo.email)
+                                        : ticket.assignedTo)
+                                      : '-'}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.priority}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
                                         ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                                        ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
-                                        ticket.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
-                                        'bg-gray-100 text-gray-800'
+                                          ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
+                                            ticket.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
+                                              'bg-gray-100 text-gray-800'
                                       }`}>
-                                        {ticket.status}
-                                      </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                      {ticket.created ? (ticket.created.toDate ? ticket.created.toDate().toLocaleString() : new Date(ticket.created).toLocaleString()) : ''}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.responseTime ? (detail.responseTime/1000/60).toFixed(2) : '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.resolutionTime ? (detail.resolutionTime/1000/60).toFixed(2) : '-'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.breached ? <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Yes</span> : <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">No</span>}</td>
-                                  </tr>
-                                );
-                              })}
+                                      {ticket.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {ticket.created ? (ticket.created.toDate ? ticket.created.toDate().toLocaleString() : new Date(ticket.created).toLocaleString()) : ''}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.responseTime ? (detail.responseTime / 1000 / 60).toFixed(2) : '-'}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.resolutionTime ? (detail.resolutionTime / 1000 / 60).toFixed(2) : '-'}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{detail.breached ? <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Yes</span> : <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">No</span>}</td>
+                                </tr>
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>
@@ -1169,7 +1167,7 @@ const ClientHeadDashboard = () => {
                   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                       <TrendingUp className="w-5 h-5 mr-2 text-blue-600" />
-                       Trends
+                      Trends
                     </h3>
                     {/* Trends Month Filter */}
                     <div className="mb-4 flex gap-4 items-center">
@@ -1229,7 +1227,7 @@ const ClientHeadDashboard = () => {
                   </div>
                 </div>
 
-                
+
               </div>
             )}
 
@@ -1274,20 +1272,20 @@ const ClientHeadDashboard = () => {
             {activeTab === 'kpi' && (
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center"><BarChart3 className="w-6 h-6 mr-2 text-blue-600" />KPI Reports</h2>
-               
+
                 {/* KPI Filters: Month, Year, and Period */}
-                        <div className="mb-4 flex gap-4 items-center">
-                          <span className="font-semibold text-gray-700">Year:</span>
-                          <select
-                            value={kpiSelectedYear}
+                <div className="mb-4 flex gap-4 items-center">
+                  <span className="font-semibold text-gray-700">Year:</span>
+                  <select
+                    value={kpiSelectedYear}
                     onChange={e => handleKpiYearChange(e.target.value)}
-                            className="border rounded px-2 py-1 text-sm"
-                          >
+                    className="border rounded px-2 py-1 text-sm"
+                  >
                     {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                              <option key={y} value={y}>{y}</option>
-                            ))}
-                          </select>
-                          <span className="font-semibold text-gray-700">Month:</span>
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                  <span className="font-semibold text-gray-700">Month:</span>
                   <input
                     type="month"
                     value={kpiSelectedMonth}
@@ -1305,7 +1303,7 @@ const ClientHeadDashboard = () => {
                     <option value="last6months">Last 6 Months</option>
                     <option value="lastyear">Last Year</option>
                   </select>
-                        </div>
+                </div>
                 {kpiFilteredTickets.length === 0 ? (
                   <div className="text-gray-500">No tickets found for KPI analysis.</div>
                 ) : (
@@ -1323,60 +1321,60 @@ const ClientHeadDashboard = () => {
                       </button>
                     </div>
                     {/* KPI Bar Chart (Created/Closed/Breached) */}
-                              <div className="bg-white rounded-lg p-4 mb-6 border border-gray-100 shadow-sm" id="kpi-bar-chart-count">
+                    <div className="bg-white rounded-lg p-4 mb-6 border border-gray-100 shadow-sm" id="kpi-bar-chart-count">
                       <h3 className="text-lg font-semibold mb-2">KPI Bar Chart (Created Tickets/Closed/Breached)</h3>
-                          <ResponsiveContainer width="100%" height={250}>
+                      <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={kpiChartData}>
-                                      <CartesianGrid strokeDasharray="3 3" />
-                                      <XAxis dataKey="period" />
-                                      <YAxis allowDecimals={false} />
-                                      <Tooltip />
-                                      <Legend />
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="period" />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip />
+                          <Legend />
                           <Bar dataKey="open" name="Created Tickets" fill="#F2994" />
                           <Bar dataKey="inProgress" name="In Progress" fill="#FFC107" />
                           <Bar dataKey="resolved" name="Resolved" fill="#1976D2" />
                           <Bar dataKey="closed" name="Closed" fill="#27AE60" />
                           <Bar dataKey="breached" name="Breached" fill="#EB5757" />
                           <Bar dataKey="unclosed" name="Unclosed" fill="#F2994A" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                              </div>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                     {/* KPI Bar Chart (Response/Resolution Time) */}
-                              <div className="bg-white rounded-lg p-4 mb-6 border border-gray-100 shadow-sm" id="kpi-bar-chart-time">
+                    <div className="bg-white rounded-lg p-4 mb-6 border border-gray-100 shadow-sm" id="kpi-bar-chart-time">
                       <h3 className="text-lg font-semibold mb-2">KPI Bar Chart (Avg Response/Avg Resolution Time in min)</h3>
-                                <ResponsiveContainer width="100%" height={250}>
+                      <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={kpiChartData}>
-                                      <CartesianGrid strokeDasharray="3 3" />
-                                      <XAxis dataKey="period" />
-                                      <YAxis label={{ value: 'Minutes', angle: -90, position: 'insideLeft' }} />
-                                      <Tooltip />
-                                      <Legend />
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="period" />
+                          <YAxis label={{ value: 'Minutes', angle: -90, position: 'insideLeft' }} />
+                          <Tooltip />
+                          <Legend />
                           <Bar dataKey="response" name="Avg Response Time" fill="#56CCF2" />
                           <Bar dataKey="resolution" name="Avg Resolution Time" fill="#BB6BD9" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                              </div>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                     {/* KPI Table */}
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full text-xs text-left text-gray-700 border">
-                              <thead>
-                                <tr>
-                                  <th className="py-1 px-2">Ticket #</th>
-                                  <th className="py-1 px-2">Subject</th>
-                                  <th className="py-1 px-2">Assignee</th>
-                                  <th className="py-1 px-2">Priority</th>
-                                  <th className="py-1 px-2">Status</th>
-                                  <th className="py-1 px-2">Created</th>
-                                  <th className="py-1 px-2">Response Time (min)</th>
-                                  <th className="py-1 px-2">Resolution Time (min)</th>
-                                  <th className="py-1 px-2">Breached</th>
-                                </tr>
-                              </thead>
-                              <tbody>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs text-left text-gray-700 border">
+                        <thead>
+                          <tr>
+                            <th className="py-1 px-2">Ticket #</th>
+                            <th className="py-1 px-2">Subject</th>
+                            <th className="py-1 px-2">Assignee</th>
+                            <th className="py-1 px-2">Priority</th>
+                            <th className="py-1 px-2">Status</th>
+                            <th className="py-1 px-2">Created</th>
+                            <th className="py-1 px-2">Response Time (min)</th>
+                            <th className="py-1 px-2">Resolution Time (min)</th>
+                            <th className="py-1 px-2">Breached</th>
+                          </tr>
+                        </thead>
+                        <tbody>
                           {kpiFilteredTickets.map((ticket, idx) => {
                             const kpi = computeKPIsForTickets([ticket]);
-                                    const detail = kpi.details[0] || {};
-                                    return (
+                            const detail = kpi.details[0] || {};
+                            return (
                               <tr key={ticket.id || idx} className="border-t">
                                 <td className="py-1 px-2">{ticket.ticketNumber}</td>
                                 <td className="py-1 px-2">{ticket.subject}</td>
@@ -1384,29 +1382,29 @@ const ClientHeadDashboard = () => {
                                 <td className="py-1 px-2">{ticket.priority}</td>
                                 <td className="py-1 px-2">{ticket.status}</td>
                                 <td className="py-1 px-2">{ticket.created ? (ticket.created.toDate ? ticket.created.toDate().toLocaleString() : new Date(ticket.created).toLocaleString()) : ''}</td>
-                                    <td className="py-1 px-2">{detail.responseTime ? (detail.responseTime/1000/60).toFixed(2) : '-'}</td>
-                                    <td className="py-1 px-2">{detail.resolutionTime ? (detail.resolutionTime/1000/60).toFixed(2) : '-'}</td>
-                                    <td className="py-1 px-2">{detail.breached ? <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Yes</span> : <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">No</span>}</td>
-                                  </tr>
-                                );
-                              })}
-                              </tbody>
-                            </table>
-                        </div>
-                         {/* SLA Table */}
-                <div className="mb-6 mt-8">
-                  <h3 className="text-md font-semibold mb-2">SLA Table</h3>
-                  <table className="min-w-full text-xs text-left text-gray-700 border mb-4">
-                    <thead><tr><th className="py-1 px-2">Priority</th><th className="py-1 px-2">Initial Response Time</th><th className="py-1 px-2">Resolution Time</th></tr></thead>
-                    <tbody>
-                      <tr><td className="py-1 px-2">Critical</td><td className="py-1 px-2">10 min</td><td className="py-1 px-2">1 hour</td></tr>
-                      <tr><td className="py-1 px-2">High</td><td className="py-1 px-2">1 hour</td><td className="py-1 px-2">2 hours</td></tr>
-                      <tr><td className="py-1 px-2">Medium</td><td className="py-1 px-2">2 hours</td><td className="py-1 px-2">6 hours</td></tr>
-                      <tr><td className="py-1 px-2">Low</td><td className="py-1 px-2">6 hours</td><td className="py-1 px-2">1 day</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-                      </>
+                                <td className="py-1 px-2">{detail.responseTime ? (detail.responseTime / 1000 / 60).toFixed(2) : '-'}</td>
+                                <td className="py-1 px-2">{detail.resolutionTime ? (detail.resolutionTime / 1000 / 60).toFixed(2) : '-'}</td>
+                                <td className="py-1 px-2">{detail.breached ? <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Yes</span> : <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">No</span>}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* SLA Table */}
+                    <div className="mb-6 mt-8">
+                      <h3 className="text-md font-semibold mb-2">SLA Table</h3>
+                      <table className="min-w-full text-xs text-left text-gray-700 border mb-4">
+                        <thead><tr><th className="py-1 px-2">Priority</th><th className="py-1 px-2">Initial Response Time</th><th className="py-1 px-2">Resolution Time</th></tr></thead>
+                        <tbody>
+                          <tr><td className="py-1 px-2">Critical</td><td className="py-1 px-2">10 min</td><td className="py-1 px-2">1 hour</td></tr>
+                          <tr><td className="py-1 px-2">High</td><td className="py-1 px-2">1 hour</td><td className="py-1 px-2">2 hours</td></tr>
+                          <tr><td className="py-1 px-2">Medium</td><td className="py-1 px-2">2 hours</td><td className="py-1 px-2">6 hours</td></tr>
+                          <tr><td className="py-1 px-2">Low</td><td className="py-1 px-2">6 hours</td><td className="py-1 px-2">1 day</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             )}
