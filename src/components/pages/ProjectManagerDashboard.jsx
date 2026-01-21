@@ -144,7 +144,7 @@ export function computeKPIsForTickets(tickets) {
       let sla = SLA_RULES[priority];
       if (sla) {
         if ((responseTime && responseTime > sla.response * 60 * 1000) ||
-            (resolutionTime && resolutionTime > sla.resolution * 60 * 1000)) {
+          (resolutionTime && resolutionTime > sla.resolution * 60 * 1000)) {
           breached = true;
           breachedCount++;
         }
@@ -187,17 +187,17 @@ async function downloadKpiCsv(kpiData, projectName = '') {
   const chartHeader = ['Ticket #', 'Response Time (min)', 'Resolution Time (min)'];
   const chartRows = kpiData.details.map(row => [
     row.ticketNumber,
-    row.responseTime ? (row.responseTime/1000/60).toFixed(2) : '',
-    row.resolutionTime ? (row.resolutionTime/1000/60).toFixed(2) : ''
+    row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : '',
+    row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : ''
   ]);
   // Table data
-  const header = ['Ticket #','Subject','Assignee','Response Time (min)','Resolution Time (min)','Status'];
+  const header = ['Ticket #', 'Subject', 'Assignee', 'Response Time (min)', 'Resolution Time (min)', 'Status'];
   const rows = kpiData.details.map(row => [
     row.ticketNumber,
     row.subject,
     row.assignee,
-    row.responseTime ? (row.responseTime/1000/60).toFixed(2) : '',
-    row.resolutionTime ? (row.resolutionTime/1000/60).toFixed(2) : '',
+    row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : '',
+    row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : '',
     row.status
   ]);
   // Compose CSV
@@ -209,7 +209,7 @@ async function downloadKpiCsv(kpiData, projectName = '') {
     ['KPI Table Data:'],
     header,
     ...rows
-  ].map(r => r.map(x => '"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
+  ].map(r => r.map(x => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\n');
 
   // Note: KPI report saving to backend can be added later if needed
 
@@ -251,14 +251,14 @@ export async function exportKpiToExcelWithChartImage(kpiData, chartIds, projectN
   const worksheet = workbook.addWorksheet('KPI Report');
 
   // 2. Add table data FIRST
-  worksheet.addRow(['Ticket #','Subject','Assignee','Response Time (min)', 'Resolution Time (min)', 'Status']);
+  worksheet.addRow(['Ticket #', 'Subject', 'Assignee', 'Response Time (min)', 'Resolution Time (min)', 'Status']);
   kpiData.details.forEach(row => {
     worksheet.addRow([
       row.ticketNumber,
       row.subject,
       row.assignee,
-      row.responseTime ? (row.responseTime/1000/60).toFixed(2) : '',
-      row.resolutionTime ? (row.resolutionTime/1000/60).toFixed(2) : '',
+      row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : '',
+      row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : '',
       row.status
     ]);
   });
@@ -343,14 +343,14 @@ async function exportKpiExcelWithCharts(kpiData, chartIds, projectName = '') {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('KPI Report');
   // Add table data first
-  worksheet.addRow(['Ticket #','Subject','Assignee','Response Time (min)', 'Resolution Time (min)', 'Status']);
+  worksheet.addRow(['Ticket #', 'Subject', 'Assignee', 'Response Time (min)', 'Resolution Time (min)', 'Status']);
   kpiData.details.forEach(row => {
     worksheet.addRow([
       row.ticketNumber,
       row.subject,
       row.assignee,
-      row.responseTime ? (row.responseTime/1000/60).toFixed(2) : '',
-      row.resolutionTime ? (row.resolutionTime/1000/60).toFixed(2) : '',
+      row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : '',
+      row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : '',
       row.status
     ]);
   });
@@ -382,7 +382,7 @@ const ProjectManagerDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [managerName, setManagerName] = useState('');
   const [stats, setStats] = useState({
-   
+
     activeTickets: 0,
     teamMembers: 0,
     completedTickets: 0
@@ -418,7 +418,7 @@ const ProjectManagerDashboard = () => {
   // Add state for selected Trends month
   const [trendsSelectedMonth, setTrendsSelectedMonth] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
   // --- KPI Filter State ---
@@ -464,11 +464,11 @@ const ProjectManagerDashboard = () => {
       navigate('/login');
     }
   }, [user, navigate]);
-  
+
   // Fetch user data and set manager name
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchUserData = async () => {
       try {
         const userResponse = await apiRequest('/dashboards/user', { method: 'GET' });
@@ -489,22 +489,22 @@ const ProjectManagerDashboard = () => {
         setManagerName(name.charAt(0).toUpperCase() + name.slice(1));
       }
     };
-    
+
     fetchUserData();
   }, [user]);
- // Handle URL parameters for tab navigation
- useEffect(() => {
-  const tabParam = searchParams.get('tab');
-  if (tabParam && ['dashboard', 'tickets', 'create'].includes(tabParam)) {
-    setActiveTab(tabParam);
-  }
-}, [searchParams]);
+  // Handle URL parameters for tab navigation
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['dashboard', 'tickets', 'create'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   useEffect(() => {
     if (!user) return;
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchProjects = async () => {
       try {
         if (isInitialLoad) {
@@ -527,9 +527,9 @@ const ProjectManagerDashboard = () => {
         }
       }
     };
-    
+
     fetchProjects();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -540,9 +540,9 @@ const ProjectManagerDashboard = () => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -556,9 +556,9 @@ const ProjectManagerDashboard = () => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -568,7 +568,7 @@ const ProjectManagerDashboard = () => {
   // Poll for role changes
   useEffect(() => {
     if (!user) return;
-    
+
     const checkRole = async () => {
       try {
         const response = await apiRequest('/dashboards/user', { method: 'GET' });
@@ -592,10 +592,10 @@ const ProjectManagerDashboard = () => {
         console.error('Error checking role:', error);
       }
     };
-    
+
     // Check role every 30 seconds
     const interval = setInterval(checkRole, 30000);
-    
+
     return () => clearInterval(interval);
   }, [user, navigate, logout]);
 
@@ -625,11 +625,10 @@ const ProjectManagerDashboard = () => {
           setActiveTab(item.id);
           setSidebarOpen(false);
         }}
-        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${
-          item.active
+        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${item.active
             ? 'bg-gradient-to-r from-[#FFA14A] to-[#FFB86C] text-white shadow-lg'
             : 'text-gray-600 hover:bg-orange-100 hover:text-orange-700'
-        }`}
+          }`}
         title={sidebarCollapsed ? item.label : ''}
       >
         <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
@@ -673,7 +672,7 @@ const ProjectManagerDashboard = () => {
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0,0,0,0);
+    startOfWeek.setHours(0, 0, 0, 0);
     filteredMyTickets = myTickets.filter(t => {
       const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
       return created && created >= startOfWeek && created <= now;
@@ -696,7 +695,7 @@ const ProjectManagerDashboard = () => {
   } else if (appliedFromDate && appliedToDate) {
     const from = new Date(appliedFromDate);
     const to = new Date(appliedToDate);
-    to.setHours(23,59,59,999);
+    to.setHours(23, 59, 59, 999);
     filteredMyTickets = myTickets.filter(t => {
       const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
       return created && created >= from && created <= to;
@@ -707,7 +706,7 @@ const ProjectManagerDashboard = () => {
 
   // Track last selectedProjectId to determine if it's a new selection
   const lastProjectIdRef = useRef(null);
-  
+
   // Fetch tickets when selectedProjectId changes
   useEffect(() => {
     if (!user || !selectedProjectId) {
@@ -715,14 +714,14 @@ const ProjectManagerDashboard = () => {
       setLoading(false);
       return;
     }
-    
+
     const isNewProject = lastProjectIdRef.current !== selectedProjectId;
     if (isNewProject) {
       lastProjectIdRef.current = selectedProjectId;
     }
-    
+
     let interval = null;
-    
+
     const fetchTickets = async (showLoading = false) => {
       try {
         if (showLoading) {
@@ -736,11 +735,11 @@ const ProjectManagerDashboard = () => {
           }
           return;
         }
-        
+
         const response = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProjectName)}`, {
           method: 'GET',
         });
-        
+
         if (response.success && response.tickets) {
           const ticketsData = response.tickets.map(ticket => ({
             ...ticket,
@@ -757,10 +756,10 @@ const ProjectManagerDashboard = () => {
         }
       }
     };
-    
+
     // Only show loading when project actually changes
     fetchTickets(isNewProject);
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -771,9 +770,9 @@ const ProjectManagerDashboard = () => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -787,9 +786,9 @@ const ProjectManagerDashboard = () => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -814,9 +813,9 @@ const ProjectManagerDashboard = () => {
   // Helper to get week number and year
   function getWeekYear(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     return { week: weekNo, year: d.getUTCFullYear() };
   }
 
@@ -872,7 +871,7 @@ const ProjectManagerDashboard = () => {
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0,0,0,0);
+    startOfWeek.setHours(0, 0, 0, 0);
     filteredTableTickets = filteredTableTickets.filter(t => {
       const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
       return created && created >= startOfWeek && created <= now;
@@ -895,7 +894,7 @@ const ProjectManagerDashboard = () => {
   } else if (appliedFromDate && appliedToDate) {
     const from = new Date(appliedFromDate);
     const to = new Date(appliedToDate);
-    to.setHours(23,59,59,999);
+    to.setHours(23, 59, 59, 999);
     filteredTableTickets = filteredTableTickets.filter(t => {
       const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
       return created && created >= from && created <= to;
@@ -903,7 +902,7 @@ const ProjectManagerDashboard = () => {
   }
 
   // Trends chart data grouping (calendar-based week-of-month, like ClientHeadDashboard)
-  const [trendsYear, trendsMonth] = kpiSelectedMonth.split('-').map(Number);
+  const [trendsYear, trendsMonth] = trendsSelectedMonth.split('-').map(Number);
   const trendsMonthTickets = tickets.filter(t => {
     const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
     return created && created.getFullYear() === trendsYear && created.getMonth() + 1 === trendsMonth;
@@ -1014,8 +1013,8 @@ const ProjectManagerDashboard = () => {
           if (kpi.avgResponse) { responseSum += kpi.avgResponse; responseCount++; }
           if (kpi.avgResolution) { resolutionSum += kpi.avgResolution; resolutionCount++; }
         });
-        const response = responseCount ? Number((responseSum/responseCount/1000/60).toFixed(2)) : 0;
-        const resolution = resolutionCount ? Number((resolutionSum/resolutionCount/1000/60).toFixed(2)) : 0;
+        const response = responseCount ? Number((responseSum / responseCount / 1000 / 60).toFixed(2)) : 0;
+        const resolution = resolutionCount ? Number((resolutionSum / resolutionCount / 1000 / 60).toFixed(2)) : 0;
         return { period: label, open, inProgress, resolved, closed, unclosed, breached, response, resolution };
       });
     } else {
@@ -1058,8 +1057,8 @@ const ProjectManagerDashboard = () => {
           if (kpi.avgResponse) { responseSum += kpi.avgResponse; responseCount++; }
           if (kpi.avgResolution) { resolutionSum += kpi.avgResolution; resolutionCount++; }
         });
-        const response = responseCount ? Number((responseSum/responseCount/1000/60).toFixed(2)) : 0;
-        const resolution = resolutionCount ? Number((resolutionSum/resolutionCount/1000/60).toFixed(2)) : 0;
+        const response = responseCount ? Number((responseSum / responseCount / 1000 / 60).toFixed(2)) : 0;
+        const resolution = resolutionCount ? Number((resolutionSum / resolutionCount / 1000 / 60).toFixed(2)) : 0;
         return { period: label, open, inProgress, resolved, closed, unclosed, breached, response, resolution };
       });
     }
@@ -1116,11 +1115,9 @@ const ProjectManagerDashboard = () => {
         </div>
       )}
       <div className={showLogoutConfirm ? 'flex h-screen bg-gray-50 filter blur-sm pointer-events-none select-none' : 'flex h-screen bg-gray-50'}>
-        <aside className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'w-20' : 'w-64'
-        } bg-white shadow-xl lg:translate-x-0 lg:static ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-64'
+          } bg-white shadow-xl lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}>
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -1238,7 +1235,7 @@ const ProjectManagerDashboard = () => {
                 {/* Ticket Summary Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-6">
                   {/* Unclosed Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => setActiveTab('tickets')}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all duration-300 text-left group"
                   >
@@ -1254,7 +1251,7 @@ const ProjectManagerDashboard = () => {
                     </div>
                   </button>
                   {/* Closed Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => setActiveTab('tickets')}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all duration-300 text-left group"
                   >
@@ -1270,7 +1267,7 @@ const ProjectManagerDashboard = () => {
                     </div>
                   </button>
                   {/* Open Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => setActiveTab('tickets')}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all duration-300 text-left group"
                   >
@@ -1286,7 +1283,7 @@ const ProjectManagerDashboard = () => {
                     </div>
                   </button>
                   {/* In Progress Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => setActiveTab('tickets')}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all duration-300 text-left group"
                   >
@@ -1302,7 +1299,7 @@ const ProjectManagerDashboard = () => {
                     </div>
                   </button>
                   {/* Resolved Tickets Stat Card */}
-                  <button 
+                  <button
                     onClick={() => setActiveTab('tickets')}
                     className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-orange-200 transition-all duration-300 text-left group"
                   >
@@ -1346,58 +1343,57 @@ const ProjectManagerDashboard = () => {
                   {selectedTicketId ? (
                     <TicketDetails ticketId={selectedTicketId} onBack={() => setSelectedTicketId(null)} />
                   ) : (
-                  <div className="overflow-x-auto">
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Raised By</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned By</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredTableTickets
-                            .filter(ticket => String(ticket.status).trim().toLowerCase() !== 'closed')
-                            .sort((a, b) => {
-                              const dateA = a.created?.toDate ? a.created.toDate() : new Date(a.created);
-                              const dateB = b.created?.toDate ? b.created.toDate() : new Date(b.created);
-                              return dateB - dateA;
-                            })
-                            .map((ticket, idx) => (
-                              <tr
-                                key={ticket.id || idx}
-                                className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                    <div className="overflow-x-auto">
+                      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket ID</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Raised By</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned By</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredTableTickets
+                              .filter(ticket => String(ticket.status).trim().toLowerCase() !== 'closed')
+                              .sort((a, b) => {
+                                const dateA = a.created?.toDate ? a.created.toDate() : new Date(a.created);
+                                const dateB = b.created?.toDate ? b.created.toDate() : new Date(b.created);
+                                return dateB - dateA;
+                              })
+                              .map((ticket, idx) => (
+                                <tr
+                                  key={ticket.id || idx}
+                                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
                                   onClick={() => setSelectedTicketId(ticket.id)}
-                              >
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                    ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
-                                    ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                                    ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {ticket.status}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.priority}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.customer}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.assignedTo ? (ticket.assignedTo.name || ticket.assignedTo.email) : '-'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.assignedBy || '-'}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.lastUpdated ? (ticket.lastUpdated.toDate ? ticket.lastUpdated.toDate().toLocaleString() : new Date(ticket.lastUpdated).toLocaleString()) : ''}</td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
+                                >
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+                                        ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                                          ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                                            'bg-gray-100 text-gray-800'
+                                      }`}>
+                                      {ticket.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.priority}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.customer}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.assignedTo ? (ticket.assignedTo.name || ticket.assignedTo.email) : '-'}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.assignedBy || '-'}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.lastUpdated ? (ticket.lastUpdated.toDate ? ticket.lastUpdated.toDate().toLocaleString() : new Date(ticket.lastUpdated).toLocaleString()) : ''}</td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
                   )}
                 </div>
                 {/* Priority Distribution */}
@@ -1468,8 +1464,8 @@ const ProjectManagerDashboard = () => {
                     Quick Actions
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    
-                   
+
+
 
                     <button
                       onClick={() => setActiveTab('tickets')}
@@ -1488,7 +1484,7 @@ const ProjectManagerDashboard = () => {
                   </div>
                 </div>
 
-                
+
               </div>
             )}
 
@@ -1508,7 +1504,7 @@ const ProjectManagerDashboard = () => {
 
             {activeTab === 'create' && (
               <div className="max-w-auto mx-auto">
-                <Ticketing 
+                <Ticketing
                   onTicketCreated={() => setActiveTab('tickets')}
                   selectedProjectId={selectedProjectId}
                   selectedProjectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
@@ -1550,7 +1546,7 @@ const ProjectManagerDashboard = () => {
                     value={kpiSelectedMonth}
                     onChange={e => handleKpiMonthChange(e.target.value)}
                     className="border rounded px-2 py-1 text-sm"
-                    max={`${kpiSelectedYear}-${String(new Date().getMonth()+1).padStart(2,'0')}`}
+                    max={`${kpiSelectedYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`}
                   />
                   <span className="font-semibold text-gray-700">Period:</span>
                   <select
@@ -1588,24 +1584,24 @@ const ProjectManagerDashboard = () => {
                 ) : (
                   <>
                     {/* KPI Bar Chart (Created/Closed/Breached) - already present */}
-                              <div className="bg-white rounded-lg p-4 mb-6 border border-gray-100 shadow-sm" id="kpi-bar-chart">
+                    <div className="bg-white rounded-lg p-4 mb-6 border border-gray-100 shadow-sm" id="kpi-bar-chart">
                       <h3 className="text-lg font-semibold mb-2">KPI Bar Chart (Created Tickets/Closed/Breached)</h3>
-                                <ResponsiveContainer width="100%" height={250}>
+                      <ResponsiveContainer width="100%" height={250}>
                         <BarChart data={kpiChartData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="period" />
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="period" />
                           <YAxis allowDecimals={false} />
-                                    <Tooltip content={<KpiBarTooltip />} />
-                                    <Legend />
+                          <Tooltip content={<KpiBarTooltip />} />
+                          <Legend />
                           <Bar dataKey="open" name="Created Tickets" fill="#F2994A" />
                           <Bar dataKey="inProgress" name="In Progress" fill="#1976D2" />
                           <Bar dataKey="resolved" name="Resolved" fill="#27AE60" />
                           <Bar dataKey="closed" name="Closed" fill="#34495E" />
                           <Bar dataKey="breached" name="Breached" fill="#EB5757" />
                           <Bar dataKey="unclosed" name="Unclosed" fill="#FFC107" />
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              </div>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                     {/* KPI Bar Chart (Response/Resolution Time) */}
                     <div id="kpi-bar-chart-time" className="bg-white rounded-lg p-4 mb-6 border border-gray-100 shadow-sm">
                       <ResponsiveContainer width="100%" height={250}>
@@ -1621,22 +1617,22 @@ const ProjectManagerDashboard = () => {
                       </ResponsiveContainer>
                     </div>
                     {/* KPI Table */}
-                              <div className="overflow-x-auto">
-                                  <table className="min-w-full text-xs text-left text-gray-700 border">
-                                    <thead>
-                                      <tr>
-                                        <th className="py-1 px-2">Ticket #</th>
-                                        <th className="py-1 px-2">Subject</th>
-                                        <th className="py-1 px-2">Assignee</th>
-                                        <th className="py-1 px-2">Priority</th>
-                                        <th className="py-1 px-2">Status</th>
-                                        <th className="py-1 px-2">Created</th>
-                                        <th className="py-1 px-2">Response Time (min)</th>
-                                        <th className="py-1 px-2">Resolution Time (min)</th>
-                                        <th className="py-1 px-2">Breached</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs text-left text-gray-700 border">
+                        <thead>
+                          <tr>
+                            <th className="py-1 px-2">Ticket #</th>
+                            <th className="py-1 px-2">Subject</th>
+                            <th className="py-1 px-2">Assignee</th>
+                            <th className="py-1 px-2">Priority</th>
+                            <th className="py-1 px-2">Status</th>
+                            <th className="py-1 px-2">Created</th>
+                            <th className="py-1 px-2">Response Time (min)</th>
+                            <th className="py-1 px-2">Resolution Time (min)</th>
+                            <th className="py-1 px-2">Breached</th>
+                          </tr>
+                        </thead>
+                        <tbody>
                           {kpiFilteredTickets.map((ticket, idx) => {
                             const kpi = computeKPIsForTickets([ticket]);
                             const detail = kpi.details[0] || {};
@@ -1648,16 +1644,16 @@ const ProjectManagerDashboard = () => {
                                 <td className="py-1 px-2">{ticket.priority}</td>
                                 <td className="py-1 px-2">{ticket.status}</td>
                                 <td className="py-1 px-2">{ticket.created ? (ticket.created.toDate ? ticket.created.toDate().toLocaleString() : new Date(ticket.created).toLocaleString()) : ''}</td>
-                                <td className="py-1 px-2">{detail.responseTime ? (detail.responseTime/1000/60).toFixed(2) : '-'}</td>
-                                <td className="py-1 px-2">{detail.resolutionTime ? (detail.resolutionTime/1000/60).toFixed(2) : '-'}</td>
+                                <td className="py-1 px-2">{detail.responseTime ? (detail.responseTime / 1000 / 60).toFixed(2) : '-'}</td>
+                                <td className="py-1 px-2">{detail.resolutionTime ? (detail.resolutionTime / 1000 / 60).toFixed(2) : '-'}</td>
                                 <td className="py-1 px-2">{detail.breached ? <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Yes</span> : <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">No</span>}</td>
-                                        </tr>
+                              </tr>
                             );
                           })}
-                                    </tbody>
-                                  </table>
-                              </div>
-                            </>
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -1717,7 +1713,7 @@ const TrendsTooltip = ({ active, payload, label }) => {
         <div>Resolved - {resolved}</div>
         <div>Closed - {closed}</div>
         <div>Unclosed - {unclosed}</div>
-      </div> 
+      </div>
     );
   }
   return null;

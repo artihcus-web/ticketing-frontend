@@ -139,6 +139,12 @@ const ClientHeadDashboard = () => {
     setKpiSelectedMonth('');
     setKpiPeriod('');
   };
+  // Add state for selected Trends month
+  const [trendsSelectedMonth, setTrendsSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
   // --- KPI Filter Logic ---
   const getKpiFilteredTickets = () => {
     if (kpiPeriod) {
@@ -529,8 +535,8 @@ const ClientHeadDashboard = () => {
           setSidebarOpen(false);
         }}
         className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${item.active
-            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         title={sidebarCollapsed ? item.label : ''}
       >
@@ -774,7 +780,7 @@ const ClientHeadDashboard = () => {
   }
 
   // Trends chart data grouping (should use all project tickets, not myTickets)
-  const [trendsYear, trendsMonth] = kpiSelectedMonth.split('-').map(Number);
+  const [trendsYear, trendsMonth] = trendsSelectedMonth.split('-').map(Number);
   const trendsMonthTickets = tickets.filter(t => {
     const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
     return created && created.getFullYear() === trendsYear && created.getMonth() + 1 === trendsMonth;
@@ -1138,10 +1144,10 @@ const ClientHeadDashboard = () => {
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.priority}</td>
                                   <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
-                                        ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                                          ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
-                                            ticket.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
-                                              'bg-gray-100 text-gray-800'
+                                      ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                                        ticket.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
+                                          ticket.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
+                                            'bg-gray-100 text-gray-800'
                                       }`}>
                                       {ticket.status}
                                     </span>
@@ -1172,7 +1178,7 @@ const ClientHeadDashboard = () => {
                     {/* Trends Month Filter */}
                     <div className="mb-4 flex gap-4 items-center">
                       <span className="font-semibold text-gray-700">Month:</span>
-                      <input type="month" value={kpiSelectedMonth} onChange={e => setKpiSelectedMonth(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                      <input type="month" value={trendsSelectedMonth} onChange={e => setTrendsSelectedMonth(e.target.value)} className="border rounded px-2 py-1 text-sm" />
                     </div>
                     {/* Trends Line Chart */}
                     <div className="h-64 bg-gray-50 rounded-lg p-4">
