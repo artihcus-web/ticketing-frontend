@@ -10,7 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = localStorage.getItem('token');
-  
+
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
@@ -26,6 +26,8 @@ export const apiRequest = async (endpoint, options = {}) => {
     const response = await fetch(url, {
       ...defaultOptions,
       ...options,
+      // Prevent stale cached API responses (fixes 304/Not Modified issues on some proxies/browsers)
+      cache: 'no-store',
       headers: {
         ...defaultOptions.headers,
         ...options.headers,
@@ -38,7 +40,9 @@ export const apiRequest = async (endpoint, options = {}) => {
         localStorage.removeItem('token');
         localStorage.removeItem('isLoggedIn');
         if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+          // window.location.href = '/login';
+          // Dispatch a custom event to trigger soft logout via AuthContext
+          window.dispatchEvent(new Event('auth:unauthorized'));
         }
       }
       const errorData = await response.json().catch(() => ({ error: 'Network error' }));
