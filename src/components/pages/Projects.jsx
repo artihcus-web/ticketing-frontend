@@ -51,7 +51,7 @@ function Projects() {
   useEffect(() => {
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchProjects = async () => {
       try {
         const response = await apiRequest('/projects', {
@@ -64,9 +64,9 @@ function Projects() {
         console.error('Error fetching projects:', error);
       }
     };
-    
+
     fetchProjects();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -77,9 +77,9 @@ function Projects() {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -93,9 +93,9 @@ function Projects() {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -120,11 +120,11 @@ function Projects() {
           description: formData.description,
         }),
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to create project');
       }
-      
+
       setProjects([...projects, response.project]);
       setShowAddProjectModal(false);
       setFormData({ name: '', description: '', email: '', password: '', role: 'client', userType: 'client' });
@@ -167,7 +167,7 @@ function Projects() {
     if (!selectedProject) {
       return;
     }
-    
+
     try {
       // Determine the role based on user type and role
       let finalRole;
@@ -176,7 +176,7 @@ function Projects() {
       } else {
         finalRole = formData.role === 'manager' ? 'project_manager' : 'employee';
       }
-      
+
       // Add member via backend API
       const response = await apiRequest(`/projects/${selectedProject.id}/members`, {
         method: 'POST',
@@ -187,14 +187,14 @@ function Projects() {
           password: password,
         }),
       });
-      
+
       if (!response.success) {
         if (response.blocked) {
           setBlockedEmail(email);
         }
         throw new Error(response.error || 'Failed to add member');
       }
-      
+
       // Refresh projects list
       const projectsResponse = await apiRequest('/projects', {
         method: 'GET',
@@ -206,18 +206,18 @@ function Projects() {
           setSelectedProject(updatedProject);
         }
       }
-      
+
       setShowAddPersonModal(false);
       setBlockedEmail(null);
-      setFormData({ 
-        name: '', 
-        description: '', 
-        email: '', 
-        password: '', 
+      setFormData({
+        name: '',
+        description: '',
+        email: '',
+        password: '',
         role: 'client',
         userType: 'client'
       });
-      
+
       showNotification(`${formData.email} has been added to the project.`, 'success');
     } catch (error) {
       console.error('Error adding/updating person:', error);
@@ -227,16 +227,16 @@ function Projects() {
 
   const handleDeleteConfirm = async () => {
     if (!projectToDelete) return;
-    
+
     try {
       const response = await apiRequest(`/projects/${projectToDelete}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete project');
       }
-      
+
       setProjects(projects.filter(p => p.id !== projectToDelete));
       showNotification('Project deleted successfully', 'success');
     } catch (error) {
@@ -252,9 +252,9 @@ function Projects() {
     setEditingMember(member);
     setFormData({
       email: member.email || '',
-      role: member.role === 'client_head' ? 'head' : 
-            member.role === 'project_manager' ? 'manager' : 
-            member.role === 'client' ? 'client' : 'employee',
+      role: member.role === 'client_head' ? 'head' :
+        member.role === 'project_manager' ? 'manager' :
+          member.role === 'client' ? 'client' : 'employee',
       userType: member.userType || 'client'
     });
     setShowEditMemberModal(true);
@@ -303,15 +303,16 @@ function Projects() {
       // Find all projects where this user is a member
       const userUid = editingMember.uid;
       const userEmail = formData.email;
-      
+
       // Update member in each project
       const updatePromises = [];
       for (const project of projects) {
-        if (project.members.some(m => m.uid === userUid)) {
+        if (project.members.some(m => m.uid === userUid || m.email.toLowerCase() === editingMember.email.toLowerCase())) {
           updatePromises.push(
             apiRequest(`/projects/${project.id}/members/${encodeURIComponent(editingMember.email)}`, {
               method: 'PUT',
               body: JSON.stringify({
+                email: userEmail,
                 role: formData.role,
                 userType: formData.userType,
               }),
@@ -319,9 +320,9 @@ function Projects() {
           );
         }
       }
-      
+
       await Promise.all(updatePromises);
-      
+
       // Refresh projects list
       const projectsResponse = await apiRequest('/projects', {
         method: 'GET',
@@ -329,7 +330,7 @@ function Projects() {
       if (projectsResponse.success && projectsResponse.projects) {
         setProjects(projectsResponse.projects);
       }
-      
+
       showNotification('User role/email updated in all projects and database', 'success');
     } catch (error) {
       console.error('Error updating member:', error);
@@ -343,11 +344,11 @@ function Projects() {
       const response = await apiRequest(`/projects/${projectId}/members/${encodeURIComponent(memberToDelete.email)}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to remove member');
       }
-      
+
       // Refresh projects list
       const projectsResponse = await apiRequest('/projects', {
         method: 'GET',
@@ -359,7 +360,7 @@ function Projects() {
           setSelectedProject(updatedProject);
         }
       }
-      
+
       showNotification(`${memberToDelete.email} has been deleted from the project${response.userDeleted ? ' and system' : ''}`, 'success');
     } catch (error) {
       console.error('Error deleting member:', error);
@@ -372,11 +373,11 @@ function Projects() {
       const response = await apiRequest(`/projects/${projectId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete project');
       }
-      
+
       setProjects(projects.filter(p => p.id !== projectId));
       showNotification('Project and all its members removed. Tickets remain for history.', 'success');
     } catch (error) {
@@ -403,11 +404,11 @@ function Projects() {
           description: editProjectData.description,
         }),
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to update project');
       }
-      
+
       // Refresh projects list
       const projectsResponse = await apiRequest('/projects', {
         method: 'GET',
@@ -415,7 +416,7 @@ function Projects() {
       if (projectsResponse.success && projectsResponse.projects) {
         setProjects(projectsResponse.projects);
       }
-      
+
       setShowEditProjectModal(false);
       setEditProjectData({ id: '', name: '', description: '' });
       showNotification('Project details updated successfully', 'success');
@@ -801,7 +802,7 @@ function Projects() {
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
           {/* Glossy Backdrop */}
           <div className="absolute inset-0 bg-gradient-to-br from-white-500/30 to-white-500/30 backdrop-blur-md"></div>
-          
+
           {/* Modal Content */}
           <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full max-w-md border border-white/20">
             <div className="relative p-6">
@@ -876,22 +877,20 @@ function Projects() {
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'employee' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'employee'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'employee'
                               ? 'border-blue-500 bg-blue-50/50 text-blue-700'
                               : 'border-gray-200 hover:border-blue-200 bg-white/50'
-                          }`}
+                            }`}
                         >
-                           Employee
+                          Employee
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'manager' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'manager'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'manager'
                               ? 'border-blue-500 bg-blue-50/50 text-blue-700'
                               : 'border-gray-200 hover:border-blue-200 bg-white/50'
-                          }`}
+                            }`}
                         >
                           Project Manager
                         </button>
@@ -901,22 +900,20 @@ function Projects() {
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'client' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'client'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'client'
                               ? 'border-purple-500 bg-purple-50/50 text-purple-700'
                               : 'border-gray-200 hover:border-purple-200 bg-white/50'
-                          }`}
+                            }`}
                         >
-                           Client
+                          Client
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'head' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'head'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'head'
                               ? 'border-purple-500 bg-purple-50/50 text-purple-700'
                               : 'border-gray-200 hover:border-purple-200 bg-white/50'
-                          }`}
+                            }`}
                         >
                           Client Manager
                         </button>
@@ -935,11 +932,10 @@ function Projects() {
                   </button>
                   <button
                     type="submit"
-                    className={`px-4 py-2 text-white rounded-xl transition-all duration-200 ${
-                      formData.userType === 'employee'
+                    className={`px-4 py-2 text-white rounded-xl transition-all duration-200 ${formData.userType === 'employee'
                         ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40'
                         : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40'
-                    }`}
+                      }`}
                   >
                     Add
                   </button>
@@ -955,11 +951,11 @@ function Projects() {
                         const response = await apiRequest(`/projects/blocked-emails/${encodeURIComponent(blockedEmail)}`, {
                           method: 'DELETE',
                         });
-                        
+
                         if (!response.success) {
                           throw new Error(response.error || 'Failed to unblock email');
                         }
-                        
+
                         setBlockedEmail(null);
                         showNotification('Email unblocked. You can now add this user.', 'success');
                       } catch (error) {
@@ -1010,9 +1006,8 @@ function Projects() {
 
       {/* Notification Toast */}
       {notification.show && (
-        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 p-4 rounded-xl shadow-lg transition-all duration-300 z-[9999] ${
-          notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-        }`}>
+        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 p-4 rounded-xl shadow-lg transition-all duration-300 z-[9999] ${notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+          }`}>
           <div className="flex items-center space-x-2 text-white">
             {notification.type === 'success' ? (
               <CheckCircle2 className="w-5 h-5" />
@@ -1075,22 +1070,20 @@ function Projects() {
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'employee' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'employee'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'employee'
                               ? 'border-blue-500 bg-blue-50/50 text-blue-700'
                               : 'border-gray-200 hover:border-blue-200 bg-white/50'
-                          }`}
+                            }`}
                         >
                           Employee
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'manager' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'manager'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'manager'
                               ? 'border-blue-500 bg-blue-50/50 text-blue-700'
                               : 'border-gray-200 hover:border-blue-200 bg-white/50'
-                          }`}
+                            }`}
                         >
                           Project Manager
                         </button>
@@ -1100,22 +1093,20 @@ function Projects() {
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'client' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'client'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'client'
                               ? 'border-purple-500 bg-purple-50/50 text-purple-700'
                               : 'border-gray-200 hover:border-purple-200 bg-white/50'
-                          }`}
+                            }`}
                         >
-                           Client
+                          Client
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, role: 'head' })}
-                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${
-                            formData.role === 'head'
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 backdrop-blur-sm ${formData.role === 'head'
                               ? 'border-purple-500 bg-purple-50/50 text-purple-700'
                               : 'border-gray-200 hover:border-purple-200 bg-white/50'
-                          }`}
+                            }`}
                         >
                           Client Manager
                         </button>
@@ -1134,11 +1125,10 @@ function Projects() {
                   </button>
                   <button
                     type="submit"
-                    className={`px-4 py-2 text-white rounded-xl shadow-lg transition-colors ${
-                      formData.userType === 'employee' 
+                    className={`px-4 py-2 text-white rounded-xl shadow-lg transition-colors ${formData.userType === 'employee'
                         ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-blue-500/25 hover:shadow-blue-500/40'
                         : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-purple-500/25 hover:shadow-purple-500/40'
-                    }`}
+                      }`}
                   >
                     Save Changes
                   </button>
