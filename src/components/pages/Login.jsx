@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { apiRequest } from "../../utils/api.js";
+
 import { useAuth } from "../../context/AuthContext.jsx";
 import artihcusLogo from '../../assets/AMS.png';
 
