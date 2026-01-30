@@ -33,7 +33,7 @@ const Login = () => {
     try {
       // Use OUR backend login (which bridges to external API)
       const apiURL = import.meta.env.VITE_API_BASE_URL || '';
-      const loginUrl = `${apiURL.replace(/\/+$/, '')}/api/auth/login`;
+      const loginUrl = `${apiURL.replace(/\/+$/, '')}/auth/login`;
 
       const response = await fetch(loginUrl, {
         method: 'POST',
