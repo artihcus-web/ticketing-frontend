@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import {
@@ -9,8 +9,6 @@ import {
   Search,
   Filter,
   RefreshCw,
-  Calendar,
-  Tag,
   User
 } from 'lucide-react';
 
@@ -35,10 +33,10 @@ const ProjectTickets = () => {
       setLoading(false);
       return;
     }
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchTickets = async () => {
       try {
         if (isInitialLoad) {
@@ -48,11 +46,11 @@ const ProjectTickets = () => {
         const projectsResponse = await apiRequest('/dashboards/projects', { method: 'GET' });
         if (projectsResponse.success && projectsResponse.projects) {
           setProjects(projectsResponse.projects);
-          
+
           // Get tickets for all managed projects
           const projectIds = projectsResponse.projects.map(project => project.id);
           const allTickets = [];
-          
+
           for (const projectId of projectIds) {
             try {
               const ticketsResponse = await apiRequest(`/dashboards/tickets?projectId=${projectId}`, {
@@ -65,19 +63,19 @@ const ProjectTickets = () => {
               console.error(`Error fetching tickets for project ${projectId}:`, err);
             }
           }
-          
+
           // Deduplicate by id
           const ticketMap = {};
           allTickets.forEach(ticket => {
             ticketMap[ticket.id] = ticket;
           });
-          
+
           const ticketsData = Object.values(ticketMap).map(ticket => ({
             ...ticket,
             created: ticket.created ? new Date(ticket.created) : null,
             lastUpdated: ticket.lastUpdated ? new Date(ticket.lastUpdated) : null,
           }));
-          
+
           setTickets(ticketsData);
         }
       } catch (error) {
@@ -91,7 +89,7 @@ const ProjectTickets = () => {
     };
 
     fetchTickets();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -102,9 +100,9 @@ const ProjectTickets = () => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -118,9 +116,9 @@ const ProjectTickets = () => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -183,18 +181,18 @@ const ProjectTickets = () => {
     }
   };
 
-  const summarize = (arr, allLabel, options) => {
+  const summarize = (arr, allLabel, _options) => {  // eslint-disable-line no-unused-vars
     if (arr.includes('All')) return allLabel;
     if (arr.length === 0) return allLabel;
     return arr.join(', ');
   };
 
   const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = 
+    const matchesSearch =
       ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus.includes('All') || filterStatus.includes(ticket.status);
     const matchesPriority = filterPriority.includes('All') || filterPriority.includes(ticket.priority);
     const matchesProject = selectedProject.includes('All') || selectedProject.includes(ticket.projectId) || selectedProject.includes(ticket.project);
@@ -283,11 +281,11 @@ const ProjectTickets = () => {
                   <label className="flex items-center text-sm">
                     <input type="checkbox" checked={selectedProject.includes('All')} onChange={() => handleCheckboxFilter(selectedProject, setSelectedProject, 'All')} /> All
                   </label>
-            {projects.map(project => (
+                  {projects.map(project => (
                     <label key={project.id} className="flex items-center text-sm">
                       <input type="checkbox" checked={selectedProject.includes(project.id)} onChange={() => handleCheckboxFilter(selectedProject, setSelectedProject, project.id)} /> {project.name}
                     </label>
-            ))}
+                  ))}
                 </div>
               )}
             </div>

@@ -1,0 +1,100 @@
+﻿import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import ClientHeadTickets from './ClientHeadTickets';
+import Ticketing from './Ticketing';
+import {
+  Users,
+  Building,
+  AlertCircle,
+  CheckCircle,
+  Plus,
+  MessageSquare,
+  LogOut,
+  Home,
+  Menu,
+  ChevronsLeft,
+  ChevronsRight,
+  Flag,
+  BarChart3,
+  TrendingUp,
+  User,
+  Clock,
+  FileText,
+  XCircle
+} from 'lucide-react';
+import { apiRequest } from '../../utils/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
+} from 'recharts';
+import LogoutModal from './LogoutModal';
+import TicketDetails from './TicketDetails';
+import {
+  exportKpiExcelWithCharts,
+  downloadTicketsAsExcel,
+} from '../../utils/dashboardUtils';
+import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+
+// Animated count-up hook
+// _useCountUp removed
+
+
+// _getStatusIcon, _getStatusBadge removed
+
+
+const ClientHeadDashboard = () => {
+  const { user, logout, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [clients, setClients] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [clientHeadName, setClientHeadName] = useState('');
+  // stats state removed
+
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);  // eslint-disable-line no-unused-vars
+  const [error, setError] = useState(null);  // eslint-disable-line no-unused-vars
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [statsYearFilter, setStatsYearFilter] = useState('current');
+
+  // --- KPI Filter State ---
+  const [kpiSelectedYear, setKpiSelectedYear] = useState(() => {
+    const now = new Date();
+    return now.getFullYear();
+  });
+  const [kpiSelectedMonth, setKpiSelectedMonth] = useState(''); // '' means not set
+  const [kpiPeriod, setKpiPeriod] = useState(''); // '', 'last3months', 'last6months', 'lastyear'
+  // --- KPI Filter Handlers ---
+  const handleKpiPeriodChange = (val) => {
+    setKpiPeriod(val);
+    setKpiSelectedMonth('');
+    setKpiSelectedYear(new Date().getFullYear());
+  };
+  const handleKpiMonthChange = (val) => {
+    setKpiSelectedMonth(val);
+    setKpiPeriod('');
+    setKpiSelectedYear(Number(val.split('-')[0]));
+  };
+  const handleKpiYearChange = (val) => {
+    setKpiSelectedYear(Number(val));
+    setKpiSelectedMonth('');
+    setKpiPeriod('');
+  };
+  // Add state for selected Trends month
+  const [trendsSelectedMonth, setTrendsSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // --- KPI Filter Logic ---
+  const getKpiFilteredTickets = () => {

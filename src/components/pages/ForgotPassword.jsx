@@ -1,14 +1,14 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { apiRequest } from "../../utils/api.js";
- 
+
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
- 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -42,7 +42,7 @@ const ForgotPassword = () => {
     } catch (err) {
       console.error("Forgot password error:", err);
       const errorMessage = err.message || "Failed to send reset link";
-      
+
       // Map error messages to match original behavior
       if (errorMessage.includes('Invalid email address format') || errorMessage.includes('invalid-email')) {
         setError("Invalid email address format");
@@ -61,7 +61,7 @@ const ForgotPassword = () => {
       setLoading(false);
     }
   };
- 
+
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-white-100 to-orange-100">
       {/* Left side - Illustration */}
@@ -86,23 +86,23 @@ const ForgotPassword = () => {
             {/* Cursor */}
             <div className="absolute bottom-16 left-8">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M8 2L16 10L12 11L14 16L11 17L9 12L8 2Z" fill="#374151"/>
+                <path d="M8 2L16 10L12 11L14 16L11 17L9 12L8 2Z" fill="#374151" />
               </svg>
             </div>
           </div>
           {/* Email icon */}
           <div className="absolute -top-8 -right-8 bg-orange-400 rounded-full p-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="white" strokeWidth="2" fill="none"/>
-              <path d="M22 6L12 13L2 6" stroke="white" strokeWidth="2" fill="none"/>
+              <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="white" strokeWidth="2" fill="none" />
+              <path d="M22 6L12 13L2 6" stroke="white" strokeWidth="2" fill="none" />
             </svg>
           </div>
           {/* Lock icon */}
           <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-orange-400 rounded-lg p-4">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="11" width="18" height="10" rx="2" ry="2" fill="white"/>
-              <circle cx="12" cy="16" r="1" fill="#3B82F6"/>
-              <path d="M7 11V7C7 4.79086 8.79086 3 11 3H13C15.2091 3 17 4.79086 17 7V11" stroke="white" strokeWidth="2" fill="none"/>
+              <rect x="3" y="11" width="18" height="10" rx="2" ry="2" fill="white" />
+              <circle cx="12" cy="16" r="1" fill="#3B82F6" />
+              <path d="M7 11V7C7 4.79086 8.79086 3 11 3H13C15.2091 3 17 4.79086 17 7V11" stroke="white" strokeWidth="2" fill="none" />
             </svg>
           </div>
           {/* Decorative circles */}
@@ -156,5 +156,5 @@ const ForgotPassword = () => {
     </div>
   );
 };
- 
+
 export default ForgotPassword;

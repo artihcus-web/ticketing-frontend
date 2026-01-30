@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { Link, useNavigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
   const [ticketsData, setTicketsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  const _navigate = useNavigate();  // eslint-disable-line no-unused-vars
   const [userProject, setUserProject] = useState(null);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [filterStatus, setFilterStatus] = useState(['All']);
@@ -54,17 +54,17 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
       setClients([]);
       return;
     }
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchData = async () => {
       try {
         if (isInitialLoad) {
           setLoading(true);
         }
         setCurrentUserEmail(user.email);
-        
+
         let currentProject = null;
         if (selectedProjectId) {
           // Fetch project name for display if needed
@@ -78,7 +78,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
             // Continue to fallback logic below
           }
         }
-        
+
         if (!currentProject) {
           // Fallback to user's project if no selectedProjectId
           try {
@@ -121,11 +121,15 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
           setClients([]);
         }
 
-        // Fetch tickets for the project
-        const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(currentProject)}`, {
+        // Fetch tickets for the project (Prefer projectId if available)
+        const ticketsUrl = selectedProjectId
+          ? `/dashboards/tickets?projectId=${selectedProjectId}`
+          : `/dashboards/tickets?projectName=${encodeURIComponent(currentProject)}`;
+
+        const ticketsResponse = await apiRequest(ticketsUrl, {
           method: 'GET',
         });
-        
+
         if (ticketsResponse.success && ticketsResponse.tickets) {
           const ticketsData = ticketsResponse.tickets.map(ticket => ({
             ...ticket,
@@ -144,9 +148,9 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
         }
       }
     };
-    
+
     fetchData();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -157,9 +161,9 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -173,9 +177,9 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -191,7 +195,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const summarize = (arr, allLabel, options) => {
+  const summarize = (arr, allLabel, _options) => {  // eslint-disable-line no-unused-vars
     if (arr.includes('All')) return allLabel;
     if (arr.length === 0) return allLabel;
     return arr.join(', ');
@@ -241,7 +245,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
     setDateFrom(from);
     setDateTo(to);
   };
-  const clearDateFilter = () => {
+  const _clearDateFilter = () => {  // eslint-disable-line no-unused-vars
     setDateFrom('');
     setDateTo('');
     setQuickDate('');
@@ -376,7 +380,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
             ? `${userData.firstName} ${userData.lastName}`.trim()
             : (userData.firstName || userData.lastName || userData.email);
         }
-      } catch (e) { /* fallback to email */ }
+      } catch (_e) { /* fallback to email */ }  // eslint-disable-line no-unused-vars
 
       const emailParams = {
         to_email: recipientEmail,
@@ -390,7 +394,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
         ticket_link: `https://articket.vercel.app/tickets/${ticket.id}`,
       };
       await sendEmail(emailParams, 'template_igl3oxn');
-      
+
       // Refresh tickets
       const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(userProject)}`, {
         method: 'GET',
@@ -409,7 +413,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
     }
   };
 
-  const handleUnassignTicket = async (ticketId) => {
+  const _handleUnassignTicket = async (ticketId) => {  // eslint-disable-line no-unused-vars
     if (!ticketId || !user) return;
     try {
       const updateResponse = await apiRequest(`/tickets/${ticketId}`, {
@@ -419,11 +423,11 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
           assignedBy: null,
         }),
       });
-      
+
       if (!updateResponse.success) {
         throw new Error(updateResponse.error || 'Failed to unassign ticket');
       }
-      
+
       // Refresh tickets
       const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(userProject)}`, {
         method: 'GET',
@@ -478,7 +482,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
     return val ?? '';
   }
 
-  function downloadTicketsAsExcel(tickets) {
+  function _downloadTicketsAsExcel(tickets) {  // eslint-disable-line no-unused-vars
     if (!tickets || tickets.length === 0) return;
     const allKeys = Array.from(new Set(tickets.flatMap(ticket => Object.keys(ticket))));
     // Ensure ticketNumber is first
@@ -775,12 +779,11 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
                       {ticket.subject}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        ticket.status === 'Open' ? 'bg-orange-100 text-orange-800' :
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-orange-100 text-orange-800' :
                         ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                        ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
                         {ticket.status}
                       </span>
                     </td>
@@ -794,7 +797,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
                       {ticket.reportedBy || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {ticket.lastUpdated 
+                      {ticket.lastUpdated
                         ? safeToDate(ticket.lastUpdated)?.toLocaleString() || 'N/A'
                         : 'N/A'}
                     </td>
@@ -810,7 +813,7 @@ const EmployeeTickets = ({ selectedProjectId = null }) => {
       ) : filtersApplied ? (
         <div className="text-gray-400 text-center py-12">No tickets found for selected filters.</div>
       ) : (
-        <div className="text-gray-400 text-center py-12">Select filters and click 'Apply Filters' to view tickets.</div>
+        <div className="text-gray-400 text-center py-12">Select filters and click &apos;Apply Filters&apos; to view tickets.</div>
       )}
     </div>
   );

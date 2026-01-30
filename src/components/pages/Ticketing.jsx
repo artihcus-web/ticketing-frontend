@@ -136,6 +136,12 @@ function ReportedByDropdown({ value, onChange, options }) {
   );
 }
 
+ReportedByDropdown.propTypes = {
+  value: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  options: PropTypes.array.isRequired
+};
+
 function Client({ selectedProjectId, selectedProjectName }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -147,7 +153,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
     category: 'Technical Issue',
     subCategory: ''
   });
- 
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
@@ -163,7 +169,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
   const [clientMembers, setClientMembers] = useState([]);
   const [reportedBy, setReportedBy] = useState('');
   const { user } = useAuth();
- 
+
   // Fetch form config from backend for dynamic dropdowns
   useEffect(() => {
     const fetchFormConfig = async () => {
@@ -183,12 +189,12 @@ function Client({ selectedProjectId, selectedProjectName }) {
     };
     fetchFormConfig();
   }, []);
- 
+
   // Fetch cascading options from formConfig
   const moduleOptions = formConfig?.moduleOptions || [];
   const categoryOptions = formConfig?.categoryOptions || {};
   const subCategoryOptions = formConfig?.subCategoryOptions || {};
- 
+
   // Fetch user data on mount and when selectedProjectName changes
   useEffect(() => {
     const fetchUserData = async () => {
@@ -205,7 +211,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
           const email = user.email || '';
           const userProject = user.project || 'General';
           const userRole = user.role || '';
-          
+
           // If client or client_head, force project to user's project, but preserve name/email
           setFormData(prev => ({
             ...prev,
@@ -237,7 +243,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
               const email = userData.email || '';
               const userProject = userData.project || 'General';
               const userRole = userData.role || '';
-              
+
               setFormData(prev => ({
                 ...prev,
                 name: name,
@@ -265,16 +271,13 @@ function Client({ selectedProjectId, selectedProjectName }) {
     setErrors({});
     setReportedBy('');
   }, [selectedProjectName, user]);
- 
+
   // Fetch client-side members from the selected project's members array
   useEffect(() => {
-    console.log('Ticketing: useEffect ran');
-    console.log('Ticketing: formData =', formData);
     if (!formData.project) {
       setClientMembers([]);
       return;
     }
-    console.log('Ticketing: formData.project =', formData.project);
     const fetchProjectMembers = async () => {
       try {
         const projectName = Array.isArray(formData.project) ? formData.project[0] : formData.project;
@@ -282,7 +285,6 @@ function Client({ selectedProjectId, selectedProjectName }) {
           method: 'GET',
         });
         if (response.success && response.members) {
-          console.log('Ticketing: members array =', response.members);
           setClientMembers(response.members);
         } else {
           setClientMembers([]);
@@ -302,7 +304,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
 
   const validateForm = async () => {
     const newErrors = {};
-   
+
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
@@ -322,7 +324,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
     } else {
       console.log('Validation passed: subCategory value is', formData.subCategory);
     }
- 
+
     // Check for duplicate tickets
     if (formData.subject.trim() && formData.email.trim()) {
       const isDuplicate = await checkDuplicateTicket(formData.subject, formData.email);
@@ -331,12 +333,12 @@ function Client({ selectedProjectId, selectedProjectName }) {
         console.log('Duplicate ticket detected for subject:', formData.subject, 'and email:', formData.email);
       }
     }
- 
+
     setErrors(newErrors);
     console.log('validateForm errors:', newErrors);
     return Object.keys(newErrors).length === 0;
   };
- 
+
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     const maxSize = 1 * 1024 * 1024; // 1MB
@@ -373,11 +375,11 @@ function Client({ selectedProjectId, selectedProjectName }) {
       fileInputRef.current.value = '';
     }
   };
- 
+
   const removeAttachment = (index) => {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
- 
+
   const getFileIcon = (file) => {
     const type = file.type.split('/')[0];
     switch (type) {
@@ -394,7 +396,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
         return <File className="w-4 h-4" />;
     }
   };
- 
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -402,9 +404,9 @@ function Client({ selectedProjectId, selectedProjectName }) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
- 
+
   // Ticket number generation is now handled by the backend
- 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Log the typeOfIssue value immediately on submit
@@ -443,13 +445,14 @@ function Client({ selectedProjectId, selectedProjectName }) {
         })
       );
       console.log('Processed attachments:', processedFiles);
-      
+
       // Build the ticket data
       const ticketData = {
         subject: formData.subject,
         customer: formData.name,
         email: formData.email,
         project: formData.project,
+        projectId: selectedProjectId || '',
         module: formData.module || '',
         category: formData.category || '',
         subCategory: formData.subCategory || '',
@@ -460,21 +463,21 @@ function Client({ selectedProjectId, selectedProjectName }) {
         reportedBy: reportedBy
       };
       console.log('Final ticketData to submit:', ticketData);
-      
+
       // Create ticket via backend API
       const response = await apiRequest('/tickets', {
         method: 'POST',
         body: JSON.stringify(ticketData),
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to create ticket');
       }
-      
+
       const ticketNumber = response.ticket.ticketNumber;
       setTicketId(ticketNumber);
       console.log('Ticket created with ticketNumber:', ticketNumber);
-      
+
       // Send email notification
       const memberEmails = response.memberEmails || [];
       console.log('DEBUG: memberEmails returned =', memberEmails);
@@ -522,7 +525,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
       setErrors({ submit: error.message || 'Failed to submit ticket. Please try again.' });
     }
   };
- 
+
   // Check for duplicate tickets via backend
   const checkDuplicateTicket = async (subject, email) => {
     try {
@@ -535,7 +538,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
       return false;
     }
   };
- 
+
   const priorityField = formConfig?.fields?.find(f => f.id === 'priority' && f.type === 'dropdown');
   let priorityOptions = [];
   if (priorityField && Array.isArray(priorityField.options)) {
@@ -567,7 +570,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
       </div>
     );
   }
- 
+
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -583,35 +586,35 @@ function Client({ selectedProjectId, selectedProjectName }) {
             <p className="text-sm text-gray-600 mb-2">Ticket ID</p>
             <p className="font-mono text-xl font-bold text-blue-600">{ticketId}</p>
           </div>
-         
+
           <p className="text-xs text-gray-400 mt-4">Redirecting to tickets page in 5 seconds...</p>
         </div>
       </div>
     );
   }
- 
+
   console.log('All field ids:', (formConfig?.fields || []).map(f => f.id));
   console.log('formConfig:', formConfig);
   console.log('priorityField:', priorityField);
   console.log('priorityOptions:', priorityOptions);
- 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 w-full">
       <div className="w-full mx-auto px-4 py-10">
         <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-0 overflow-hidden">
           <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-10">
             <div className="space-y-6">
-                 {/* Project field */}
-          <div className="mb-4">
+              {/* Project field */}
+              <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-2">Project</label>
-            <input
-              type="text"
-              className="w-full px-4 py-3 border-2 rounded-xl bg-gray-100 text-gray-700 border-gray-200 cursor-not-allowed"
-              value={formData.project}
-              disabled
-              readOnly
-            />
-          </div>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border-2 rounded-xl bg-gray-100 text-gray-700 border-gray-200 cursor-not-allowed"
+                  value={formData.project}
+                  disabled
+                  readOnly
+                />
+              </div>
               {/* Module Dropdown */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Module *</label>
@@ -628,7 +631,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
                 </select>
               </div>
               {/* Category Dropdown (depends on module) */}
-          <div>
+              <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Category</label>
                 <select
                   className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 border-gray-200 hover:border-gray-300 bg-white text-gray-700"
@@ -640,10 +643,10 @@ function Client({ selectedProjectId, selectedProjectName }) {
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
-          </div>
+              </div>
               {/* Sub-Category Dropdown (depends on category) */}
               {formData.category && Array.isArray(subCategoryOptions[formData.category]) && subCategoryOptions[formData.category].length > 0 && (
-          <div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Sub-Category</label>
                   <select
                     className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 border-gray-200 hover:border-gray-300 bg-white text-gray-700"
@@ -673,10 +676,10 @@ function Client({ selectedProjectId, selectedProjectName }) {
                     value={formData[priorityField.id] || ''}
                     onChange={val => setFormData(prev => ({ ...prev, [priorityField.id]: val }))}
                     options={priorityOptions}
-            />
-          </div>
+                  />
+                </div>
               )}
-           
+
               {/* Debug log for clientMembers at render time */}
               {console.log('Dropdown clientMembers:', clientMembers)}
               {console.log('clientMembers for dropdown:', clientMembers)}
@@ -690,7 +693,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
                 />
               </div>
               {/* Rest of the form fields */}
-              {formConfig?.fields?.filter(f => !['module','category','subCategory','priority'].includes(f.id)).map(field => {
+              {formConfig?.fields?.filter(f => !['module', 'category', 'subCategory', 'priority'].includes(f.id)).map(field => {
                 if (field.id === 'reportedBy') {
                   return (
                     <div key={field.id}>
@@ -718,16 +721,16 @@ function Client({ selectedProjectId, selectedProjectName }) {
                           toolbar: [
                             [{ 'header': [1, 2, false] }],
                             ['bold', 'italic', 'underline', 'strike'],
-                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                             ['link', 'image'],
                             ['clean']
                           ]
                         }}
                         formats={['header', 'bold', 'italic', 'underline', 'strike', 'list', 'bullet', 'link', 'image']}
                         className="bg-white rounded-xl border-2 border-gray-200 focus:border-blue-500 min-h-[120px]"
-                        
+
                         placeholder={`Please provide detailed information about your issue...`}
-                        
+
                       />
                       {errors.description && <p className="text-red-600 text-sm flex items-center mt-1"><AlertCircle className="w-4 h-4 mr-1" />{errors.description}</p>}
                       <p className="text-gray-400 text-xs mt-2">You can paste images/screenshots directly into the box above.</p>
@@ -763,149 +766,148 @@ function Client({ selectedProjectId, selectedProjectName }) {
                         onChange={e => setFormData(prev => ({ ...prev, [field.id]: e.target.value }))}
                         placeholder={field.label}
                       />
-        </div>
+                    </div>
                   );
                 }
                 // Default to text input
                 return (
                   <div key={field.id}>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">{field.label}{field.required && ' *'}</label>
-              <input
-                type="text"
+                    <input
+                      type="text"
                       className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 border-gray-200 hover:border-gray-300 bg-white text-gray-700"
-                value={formData[field.id] || ''}
+                      value={formData[field.id] || ''}
                       onChange={e => setFormData(prev => ({ ...prev, [field.id]: e.target.value }))}
-                placeholder={field.label}
-              />
+                      placeholder={field.label}
+                    />
                   </div>
                 );
               })}
               {/* Attachments field stays as is */}
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Paperclip className="w-4 h-4" />
-                  <span className="text-sm font-medium">Attachments (Optional)</span>
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Paperclip className="w-4 h-4" />
+                    <span className="text-sm font-medium">Attachments (Optional)</span>
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    multiple
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  >
+                    Add Files
+                  </button>
                 </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  multiple
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                >
-                  Add Files
-                </button>
-              </div>
-              {attachments.length > 0 && (
-                <div className="space-y-3 mt-4">
-                  {attachments.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          {getFileIcon(file)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">{file.name}</p>
-                          <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeAttachment(index)}
-                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                {attachments.length > 0 && (
+                  <div className="space-y-3 mt-4">
+                    {attachments.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
                       >
-                        <X className="w-4 h-4" />
-                      </button>
-          </div>
-        ))}
-                </div>
-              )}
-              {attachmentError && (
-                <div className="text-red-600 text-sm mt-2">{attachmentError}</div>
-              )}
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            {getFileIcon(file)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">{file.name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(index)}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {attachmentError && (
+                  <div className="text-red-600 text-sm mt-2">{attachmentError}</div>
+                )}
               </div>
             </div>
 
-        {/* Error Message */}
-        {errors.submit && (
+            {/* Error Message */}
+            {errors.submit && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-2">
                 <p className="text-red-600 text-sm flex items-center">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              {errors.submit}
-            </p>
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  {errors.submit}
+                </p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="flex justify-end mt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`px-8 py-4 rounded-xl font-semibold text-lg flex items-center space-x-3 transition-all duration-200 transform hover:scale-105 shadow-lg ${isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+                  } text-white`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Creating Ticket...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-5 h-5" />
+                    <span>Create Ticket</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+        {/* Modal for image preview */}
+        {previewFile && previewFile.type.startsWith('image/') && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative flex flex-col items-center">
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
+                onClick={() => setPreviewFile(null)}
+                aria-label="Close preview"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={previewFile.data}
+                alt={previewFile.name}
+                className="max-h-[60vh] w-auto mx-auto rounded-lg border border-gray-200 bg-gray-100"
+                onError={e => {
+                  e.target.onerror = null;
+                  e.target.style.display = 'none';
+                  const fallback = document.getElementById('img-fallback');
+                  if (fallback) fallback.style.display = 'block';
+                }}
+              />
+              <div id="img-fallback" style={{ display: 'none' }} className="text-red-500 text-center mt-8">
+                Unable to preview this image.<br />Please make sure the file is a valid image.
+              </div>
+              <div className="mt-4 text-center text-gray-700 text-sm break-all">{previewFile.name}</div>
+            </div>
           </div>
         )}
-
-        {/* Submit Button */}
-            <div className="flex justify-end mt-4">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-                className={`px-8 py-4 rounded-xl font-semibold text-lg flex items-center space-x-3 transition-all duration-200 transform hover:scale-105 shadow-lg ${
-              isSubmitting
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-            } text-white`}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Creating Ticket...</span>
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5" />
-                <span>Create Ticket</span>
-              </>
-            )}
-          </button>
-        </div>
-      </form>
-        </div>
-      {/* Modal for image preview */}
-      {previewFile && previewFile.type.startsWith('image/') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full relative flex flex-col items-center">
-            <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-500"
-              onClick={() => setPreviewFile(null)}
-              aria-label="Close preview"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img
-              src={previewFile.data}
-              alt={previewFile.name}
-              className="max-h-[60vh] w-auto mx-auto rounded-lg border border-gray-200 bg-gray-100"
-              onError={e => {
-                e.target.onerror = null;
-                e.target.style.display = 'none';
-                const fallback = document.getElementById('img-fallback');
-                if (fallback) fallback.style.display = 'block';
-              }}
-            />
-            <div id="img-fallback" style={{display:'none'}} className="text-red-500 text-center mt-8">
-              Unable to preview this image.<br/>Please make sure the file is a valid image.
-            </div>
-            <div className="mt-4 text-center text-gray-700 text-sm break-all">{previewFile.name}</div>
-          </div>
-        </div>
-      )}
       </div>
     </div>
   );
 }
- 
+
 Client.defaultProps = {
   selectedProjectId: '',
   selectedProjectName: '',
@@ -916,6 +918,5 @@ Client.propTypes = {
   selectedProjectName: PropTypes.string,
   onTicketCreated: PropTypes.func,
 };
- 
+
 export default Client;
- 

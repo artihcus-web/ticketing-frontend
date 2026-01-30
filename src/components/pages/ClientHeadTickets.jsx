@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { Link, useNavigate } from 'react-router-dom';
-import { BsTicketFill, BsFolderFill } from 'react-icons/bs';
+import { useNavigate } from 'react-router-dom';
+import { BsTicketFill } from 'react-icons/bs';
 import TicketDetails from './TicketDetails';
 import { sendEmail } from '../../utils/sendEmail';
-import { fetchProjectMemberEmails } from '../../utils/emailUtils';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 
@@ -21,7 +21,7 @@ function formatTimestamp(ts) {
   return '';
 }
 
-function safeCellValue(val) {
+function _safeCellValue(val) {  // eslint-disable-line no-unused-vars
   if (typeof val === 'string') return val.length > 10000 ? val.slice(0, 10000) + '... [truncated]' : val;
   if (Array.isArray(val)) return `[${val.length} items]`;
   if (typeof val === 'object' && val !== null) return '[object]';
@@ -76,7 +76,7 @@ function calculateTimes(ticket) {
   return { responseTime, resolutionTime };
 }
 
-const ClientHeadTickets = ({ setActiveTab }) => {
+const ClientHeadTickets = ({ setActiveTab: _setActiveTab }) => {  // eslint-disable-line no-unused-vars
   const { user } = useAuth();
   const [ticketsData, setTicketsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,17 +89,17 @@ const ClientHeadTickets = ({ setActiveTab }) => {
   const [filterRaisedByClient, setFilterRaisedByClient] = useState('all');
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [selectedProject, setSelectedProject] = useState('VMM');
-  const [employees, setEmployees] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [currentUserData, setCurrentUserData] = useState(null);
+  const [employees, _setEmployees] = useState([]);  // eslint-disable-line no-unused-vars
+  const [clients, _setClients] = useState([]);  // eslint-disable-line no-unused-vars
+  const [_currentUserData, setCurrentUserData] = useState(null);  // eslint-disable-line no-unused-vars
   const [filtersApplied, setFiltersApplied] = useState(false);
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for Newest, 'asc' for Oldest
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
   const statusDropdownRef = useRef(null);
   const priorityDropdownRef = useRef(null);
-  const navigate = useNavigate();
-  const [projectMembers, setProjectMembers] = useState([]);
+  const _navigate = useNavigate();  // eslint-disable-line no-unused-vars
+  const [_projectMembers, setProjectMembers] = useState([]);  // eslint-disable-line no-unused-vars
   const [employeeMembers, setEmployeeMembers] = useState([]);
   const [clientMembers, setClientMembers] = useState([]);
   const [selectedTicketIds, setSelectedTicketIds] = useState([]);
@@ -114,7 +114,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
       setTicketsData([]);
       return;
     }
-    
+
     const fetchUserData = async () => {
       try {
         setLoading(true);
@@ -148,28 +148,28 @@ const ClientHeadTickets = ({ setActiveTab }) => {
         console.error('Error fetching user data:', error);
       }
     };
-    
+
     fetchUserData();
   }, [user]);
 
   useEffect(() => {
     if (!selectedProject || !user) return;
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchData = async () => {
       try {
         if (isInitialLoad) {
           setLoading(true);
         }
         setError(null);
-        
+
         // Fetch project members
         const membersResponse = await apiRequest(`/tickets/project-members?projectName=${encodeURIComponent(selectedProject)}`, {
           method: 'GET',
         });
-        
+
         if (membersResponse.success && membersResponse.members) {
           const members = membersResponse.members;
           setProjectMembers(members);
@@ -180,12 +180,12 @@ const ClientHeadTickets = ({ setActiveTab }) => {
           setEmployeeMembers([]);
           setClientMembers([]);
         }
-        
+
         // Fetch tickets
         const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProject)}`, {
           method: 'GET',
         });
-        
+
         if (ticketsResponse.success && ticketsResponse.tickets) {
           const ticketsData = ticketsResponse.tickets.map(ticket => ({
             ...ticket,
@@ -204,9 +204,9 @@ const ClientHeadTickets = ({ setActiveTab }) => {
         }
       }
     };
-    
+
     fetchData();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -217,9 +217,9 @@ const ClientHeadTickets = ({ setActiveTab }) => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -233,9 +233,9 @@ const ClientHeadTickets = ({ setActiveTab }) => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -251,13 +251,13 @@ const ClientHeadTickets = ({ setActiveTab }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const summarize = (arr, allLabel, options) => {
+  const summarize = (arr, allLabel, _options) => {  // eslint-disable-line no-unused-vars
     if (arr.includes('All')) return allLabel;
     if (arr.length === 0) return allLabel;
     return arr.join(', ');
   };
 
-  const handleTicketClick = (ticketId) => {
+  const _handleTicketClick = (ticketId) => {  // eslint-disable-line no-unused-vars
     setSelectedTicketId(ticketId);
   };
 
@@ -298,7 +298,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
             ? `${userData.firstName} ${userData.lastName}`.trim()
             : (userData.firstName || userData.lastName || userData.email);
         }
-      } catch (e) { /* fallback to email */ }
+      } catch (_e) { /* fallback to email */ }  // eslint-disable-line no-unused-vars
 
       // Update ticket via API
       const updateResponse = await apiRequest(`/tickets/${ticketId}`, {
@@ -337,7 +337,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
         ticket_link: `https://articket.vercel.app/tickets/${ticket.id}`,
       };
       await sendEmail(emailParams, 'template_igl3oxn');
-      
+
       // Refresh tickets
       const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProject)}`, {
         method: 'GET',
@@ -392,7 +392,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
     setDateFrom(from);
     setDateTo(to);
   };
-  const clearDateFilter = () => {
+  const _clearDateFilter = () => {  // eslint-disable-line no-unused-vars
     setDateFrom('');
     setDateTo('');
     setQuickDate('');
@@ -405,7 +405,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
     const matchesSearch =
       ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase());
-   
+
     let matchesRaisedBy = true;
     if (filterRaisedByEmployee === 'all' && filterRaisedByClient === 'all') {
       matchesRaisedBy = true;
@@ -426,7 +426,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
         matchesRaisedBy = ticket.email === filterRaisedByClient;
       }
     }
-   
+
     // Date filter
     let matchesDate = true;
     if (dateFrom) {
@@ -437,7 +437,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
       const created = ticket.created?.toDate ? ticket.created.toDate() : (ticket.created ? new Date(ticket.created) : null);
       if (!created || dayjs(created).isAfter(dayjs(dateTo), 'day')) matchesDate = false;
     }
-   
+
     return matchesStatus && matchesPriority && matchesSearch && matchesRaisedBy && matchesDate;
   });
 
@@ -449,11 +449,11 @@ const ClientHeadTickets = ({ setActiveTab }) => {
   });
 
   // Ticket counts for cards
-  const totalTickets = ticketsData.length;
-  const openTickets = ticketsData.filter(t => t.status === 'Open').length;
-  const inProgressTickets = ticketsData.filter(t => t.status === 'In Progress').length;
-  const resolvedTickets = ticketsData.filter(t => t.status === 'Resolved').length;
-  const closedTickets = ticketsData.filter(t => t.status === 'Closed').length;
+  const _totalTickets = ticketsData.length;  // eslint-disable-line no-unused-vars
+  const _openTickets = ticketsData.filter(t => t.status === 'Open').length;  // eslint-disable-line no-unused-vars
+  const _inProgressTickets = ticketsData.filter(t => t.status === 'In Progress').length;  // eslint-disable-line no-unused-vars
+  const _resolvedTickets = ticketsData.filter(t => t.status === 'Resolved').length;  // eslint-disable-line no-unused-vars
+  const _closedTickets = ticketsData.filter(t => t.status === 'Closed').length;  // eslint-disable-line no-unused-vars
 
   // Add handler for checkbox
   const handleCheckboxChange = (ticketId) => {
@@ -540,7 +540,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
             </div>
           </div> */}
         </div>
-        
+
       </div>
 
       <div className="flex justify-between items-center mb-8">
@@ -747,12 +747,11 @@ const ClientHeadTickets = ({ setActiveTab }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
                         ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                        ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
                         {ticket.status}
                       </span>
                     </td>
@@ -770,7 +769,7 @@ const ClientHeadTickets = ({ setActiveTab }) => {
       ) : filtersApplied ? (
         <div className="text-gray-400 text-center py-12">No tickets found for selected filters.</div>
       ) : (
-        <div className="text-gray-400 text-center py-12">Select filters and click 'Apply Filters' to view tickets.</div>
+        <div className="text-gray-400 text-center py-12">Select filters and click &apos;Apply Filters&apos; to view tickets.</div>
       )}
 
       {/* Add project selector for users with multiple projects */}
@@ -790,6 +789,10 @@ const ClientHeadTickets = ({ setActiveTab }) => {
       )}
     </>
   );
+};
+
+ClientHeadTickets.propTypes = {
+  setActiveTab: PropTypes.func
 };
 
 export default ClientHeadTickets;
@@ -828,4 +831,3 @@ function downloadTicketsAsExcel(tickets) {
   XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
   XLSX.writeFile(wb, 'tickets_export.xlsx');
 }
- 

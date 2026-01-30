@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
-  CheckCircle,
-  Clock,
   Plus,
   MessageSquare,
   User,
@@ -14,20 +12,15 @@ import {
   FileText,
   Menu,
   ChevronsLeft,
-  ChevronsRight,
-  Briefcase,
-  X
+  ChevronsRight
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Ticketing from './Ticketing'; // Import the Ticketing component
 import EmployeeTickets from './EmployeeTickets'; // Import the EmployeeTickets component
 import LogoutModal from './LogoutModal';
-import { Modal } from 'antd'; // Add this import if you use Ant Design, or use a custom modal
-import TicketDetails from './TicketDetails';
-import { saveAs } from 'file-saver';
-import * as XLSX from 'xlsx';
- 
+
+
 function EmployeeDashboard() {
   const { user, logout } = useAuth();
   const [tickets, setTickets] = useState([]);
@@ -46,22 +39,15 @@ function EmployeeDashboard() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [searchParams] = useSearchParams();
   const [roleChangeToast, setRoleChangeToast] = useState({ show: false, message: '' });
-  const [showSwitchProjectModal, setShowSwitchProjectModal] = useState(false);
-  const [selectedTicketId, setSelectedTicketId] = useState(null);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [period, setPeriod] = useState('custom');
-  const [appliedFromDate, setAppliedFromDate] = useState('');
-  const [appliedToDate, setAppliedToDate] = useState('');
-  const [appliedPeriod, setAppliedPeriod] = useState('custom');
- 
+
+
   // Fetch user data and set employee name
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
     }
-    
+
     const fetchUserData = async () => {
       try {
         const userResponse = await apiRequest('/dashboards/user', { method: 'GET' });
@@ -82,10 +68,10 @@ function EmployeeDashboard() {
         setEmployeeName(name.charAt(0).toUpperCase() + name.slice(1));
       }
     };
-    
+
     fetchUserData();
   }, [user]);
- 
+
   // Handle URL parameters for tab navigation
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -93,14 +79,14 @@ function EmployeeDashboard() {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
- 
+
   // Fetch projects when user is authenticated
   useEffect(() => {
     if (!user) return;
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchProjects = async () => {
       try {
         if (isInitialLoad) {
@@ -127,9 +113,9 @@ function EmployeeDashboard() {
         }
       }
     };
-    
+
     fetchProjects();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -140,9 +126,9 @@ function EmployeeDashboard() {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -156,18 +142,18 @@ function EmployeeDashboard() {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user]);
- 
+
   // Track last selectedProjectId to determine if it's a new selection
   const lastProjectIdRef = useRef(null);
-  
+
   // Fetch tickets when selectedProjectId changes
   useEffect(() => {
     if (!user || !selectedProjectId) {
@@ -175,21 +161,21 @@ function EmployeeDashboard() {
       setIsLoading(false);
       return;
     }
-    
+
     const isNewProject = lastProjectIdRef.current !== selectedProjectId;
     if (isNewProject) {
       lastProjectIdRef.current = selectedProjectId;
     }
-    
+
     let interval = null;
-    
+
     const fetchTickets = async (showLoading = false) => {
       try {
         if (showLoading) {
           setIsLoading(true);
         }
         setError(null);
-        
+
         if (selectedProjectId === 'all' && projects.length > 0) {
           // Fetch tickets for all projects
           const allTickets = [];
@@ -205,7 +191,7 @@ function EmployeeDashboard() {
               console.error(`Error fetching tickets for project ${project.id}:`, error);
             }
           }
-          
+
           // Deduplicate and sort
           const ticketMap = {};
           allTickets.forEach(ticket => {
@@ -217,32 +203,32 @@ function EmployeeDashboard() {
             const dateB = b.created ? new Date(b.created) : new Date(0);
             return dateB - dateA;
           });
-          
+
           setTickets(uniqueTickets);
         } else {
           // Single project
           const response = await apiRequest(`/dashboards/tickets?projectId=${selectedProjectId}`, {
             method: 'GET',
           });
-          
+
           if (response.success && response.tickets) {
             const ticketsData = response.tickets.map(ticket => ({
               ...ticket,
               created: ticket.created ? new Date(ticket.created) : null,
               lastUpdated: ticket.lastUpdated ? new Date(ticket.lastUpdated) : null,
             }));
-            
+
             // Sort tickets by created date
             ticketsData.sort((a, b) => {
               const dateA = a.created || new Date(0);
               const dateB = b.created || new Date(0);
               return dateB - dateA;
             });
-            
+
             setTickets(ticketsData);
           }
         }
-        
+
         setError(null);
       } catch (error) {
         console.error('Error fetching tickets:', error);
@@ -253,10 +239,10 @@ function EmployeeDashboard() {
         }
       }
     };
-    
+
     // Only show loading when project actually changes
     fetchTickets(isNewProject);
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -267,9 +253,9 @@ function EmployeeDashboard() {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -283,15 +269,15 @@ function EmployeeDashboard() {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, selectedProjectId, projects]);
- 
+
   // Enhanced scroll to bottom function
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -302,7 +288,7 @@ function EmployeeDashboard() {
       });
     }
   };
- 
+
   // Scroll to bottom when messages change
   useEffect(() => {
     if (selectedTicket) {
@@ -311,8 +297,8 @@ function EmployeeDashboard() {
         scrollToBottom();
       }, 100);
     }
-  }, [selectedTicket?.adminResponses, selectedTicket?.customerResponses, selectedTicket?.id]);
- 
+  }, [selectedTicket?.adminResponses, selectedTicket?.customerResponses, selectedTicket?.id, selectedTicket]);
+
   const handleLogout = async () => {
     setSigningOut(true);
     try {
@@ -325,16 +311,16 @@ function EmployeeDashboard() {
       setShowLogoutModal(false);
     }
   };
- 
+
   const handleLogoutClick = () => setShowLogoutModal(true);
   const handleLogoutCancel = () => setShowLogoutModal(false);
- 
+
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, active: activeTab === 'dashboard' },
     { id: 'tickets', label: 'Tickets', icon: FileText, active: activeTab === 'tickets' },
     { id: 'create', label: 'Create Ticket', icon: Plus, active: activeTab === 'create' }
   ];
- 
+
   const renderSidebarItem = (item) => {
     const IconComponent = item.icon;
     return (
@@ -346,11 +332,10 @@ function EmployeeDashboard() {
           setActiveTab(item.id);
           setSidebarOpen(false);
         }}
-        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${
-          item.active
-            ? 'bg-gradient-to-r from-[#FFA14A] to-[#FFB86C] text-white shadow-lg'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        }`}
+        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${item.active
+          ? 'bg-gradient-to-r from-[#FFA14A] to-[#FFB86C] text-white shadow-lg'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
         title={sidebarCollapsed ? item.label : ''}
       >
         <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
@@ -360,11 +345,11 @@ function EmployeeDashboard() {
       </button>
     );
   };
- 
+
   // Poll for role changes
   useEffect(() => {
     if (!user) return;
-    
+
     const checkRole = async () => {
       try {
         const response = await apiRequest('/dashboards/user', { method: 'GET' });
@@ -388,197 +373,16 @@ function EmployeeDashboard() {
         console.error('Error checking role:', error);
       }
     };
-    
+
     // Check role every 30 seconds
     const interval = setInterval(checkRole, 30000);
-    
+
     return () => clearInterval(interval);
   }, [user, navigate, logout]);
- 
-  // Filter bar handlers
-  const handleFilterApply = () => {
-    setAppliedFromDate(fromDate);
-    setAppliedToDate(toDate);
-    setAppliedPeriod(period);
-  };
-  const handleFilterReset = () => {
-    setFromDate('');
-    setToDate('');
-    setPeriod('custom');
-    setAppliedFromDate('');
-    setAppliedToDate('');
-    setAppliedPeriod('custom');
-  };
- 
-  // My Tickets: Simple logic - if the logged-in user's email matches assignedTo.email, include the ticket
-  const currentUserEmail = user?.email ? user.email.trim().toLowerCase() : '';
-  
-  // Debug: print current user email and all tickets
-  console.log('Current user email:', currentUserEmail);
-  console.log('All tickets:', tickets.map(t => ({
-    id: t.id,
-    assignedTo: t.assignedTo,
-    assignedBy: t.assignedBy,
-    email: t.email
-  })));
 
-  const myTickets = tickets.filter(t => {
-    // Simple check: if assignedTo.email matches current user's email
-    let isAssignedToMe = false;
-    
-    if (t.assignedTo && typeof t.assignedTo === 'object' && t.assignedTo.email) {
-      const assignedEmail = t.assignedTo.email.toLowerCase().trim();
-      if (assignedEmail === currentUserEmail) {
-        isAssignedToMe = true;
-      }
-    }
-    
-    // Also include tickets created by the current user
-    const isCreator = t.email && t.email.toLowerCase().trim() === currentUserEmail;
-    
-    // Also include tickets assigned by the current user
-    let isAssignedByMe = false;
-    if (t.assignedBy) {
-      if (typeof t.assignedBy === 'object' && t.assignedBy.email) {
-        const assignedByEmail = t.assignedBy.email.toLowerCase().trim();
-        if (assignedByEmail === currentUserEmail) {
-          isAssignedByMe = true;
-        }
-      } else if (typeof t.assignedBy === 'string') {
-        const assignedByStr = t.assignedBy.toLowerCase().trim();
-        if (assignedByStr === currentUserEmail) {
-          isAssignedByMe = true;
-        }
-      }
-    }
-    
-    return isAssignedToMe || isCreator || isAssignedByMe;
-  });
-  // Debug: log which tickets are included with reason
-  console.log('myTickets:', myTickets.map(t => {
-    let isAssignedToMe = false;
-    if (t.assignedTo && typeof t.assignedTo === 'object' && t.assignedTo.email) {
-      const assignedEmail = t.assignedTo.email.toLowerCase().trim();
-      if (assignedEmail === currentUserEmail) {
-        isAssignedToMe = true;
-      }
-    }
-    
-    const isCreator = t.email && t.email.toLowerCase().trim() === currentUserEmail;
-    
-    let isAssignedByMe = false;
-    if (t.assignedBy) {
-      if (typeof t.assignedBy === 'object' && t.assignedBy.email) {
-        const assignedByEmail = t.assignedBy.email.toLowerCase().trim();
-        if (assignedByEmail === currentUserEmail) {
-          isAssignedByMe = true;
-        }
-      } else if (typeof t.assignedBy === 'string') {
-        const assignedByStr = t.assignedBy.toLowerCase().trim();
-        if (assignedByStr === currentUserEmail) {
-          isAssignedByMe = true;
-        }
-      }
-    }
-    
-    return { 
-    id: t.id, 
-    assignedTo: t.assignedTo, 
-    assignedBy: t.assignedBy,
-      email: t.email,
-      reason: {
-        isAssignedToMe,
-        isCreator,
-        isAssignedByMe
-      }
-    };
-  }));
- 
-  // Filter myTickets based on appliedFromDate, appliedToDate, appliedPeriod
-  let filteredMyTickets = myTickets;
-  if (appliedPeriod === 'week') {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0,0,0,0);
-    filteredMyTickets = myTickets.filter(t => {
-      const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
-      return created && created >= startOfWeek && created <= now;
-    });
-  } else if (appliedPeriod === 'month') {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    filteredMyTickets = myTickets.filter(t => {
-      const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
-      return created && created >= startOfMonth && created <= now;
-    });
-  } else if (appliedPeriod === 'last2days') {
-    const now = new Date();
-    const twoDaysAgo = new Date(now);
-    twoDaysAgo.setDate(now.getDate() - 2);
-    filteredMyTickets = myTickets.filter(t => {
-      const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
-      return created && created >= twoDaysAgo && created <= now;
-    });
-  } else if (appliedFromDate && appliedToDate) {
-    const from = new Date(appliedFromDate);
-    const to = new Date(appliedToDate);
-    to.setHours(23,59,59,999);
-    filteredMyTickets = myTickets.filter(t => {
-      const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
-      return created && created >= from && created <= to;
-    });
-  }
-  // Only show unresolved tickets (case-insensitive, trim whitespace)
-  filteredMyTickets = filteredMyTickets.filter(t => String(t.status).trim().toLowerCase() !== 'resolved');
- 
-  function getField(ticket, ...keys) {
-    for (const key of keys) {
-      if (ticket[key]) return ticket[key];
-    }
-    return '';
-  }
-  function downloadTicketsAsExcel(tickets) {
-    if (!tickets || tickets.length === 0) return;
-    // Define the desired columns and their mapping
-    const columns = [
-      { header: 'Ticket ID', key: 'ticketNumber' },
-      { header: 'Subject', key: 'subject' },
-      { header: 'Module', key: 'module' },
-      { header: 'Type of Issue', key: 'typeOfIssue' },
-      { header: 'Category', key: 'category' },
-      { header: 'Sub-Category', key: 'subCategory' },
-      { header: 'Status', key: 'status' },
-      { header: 'Priority', key: 'priority' },
-      { header: 'Assigned To', key: 'assignedTo' },
-      { header: 'Created By', key: 'createdBy' },
-      { header: 'Reported By', key: 'reportedBy' },
-    ];
-    // Build rows: first row is header, then ticket rows
-    const rows = [columns.map(col => col.header)];
-    tickets.forEach(ticket => {
-      rows.push([
-        getField(ticket, 'ticketNumber', 'ticket_number', 'ticketId', 'ticket_id'),
-        getField(ticket, 'subject', 'Subject'),
-        getField(ticket, 'module', 'Module'),
-        getField(ticket, 'typeOfIssue', 'type_of_issue', 'typeOfissue', 'type_of_Issue', 'type', 'Type of Issue'),
-        getField(ticket, 'category', 'Category'),
-        getField(ticket, 'subCategory', 'sub_category', 'sub-category', 'Sub-Category'),
-        getField(ticket, 'status', 'Status'),
-        getField(ticket, 'priority', 'Priority'),
-        ticket.assignedTo ? (ticket.assignedTo.name || ticket.assignedTo.email) : '-',
-        ticket.customer || ticket.createdBy || '',
-        ticket.reportedBy || ticket.email || ''
-      ]);
-    });
-    // Create worksheet and workbook
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tickets');
-    // Export to file
-    XLSX.writeFile(workbook, 'tickets_export.xlsx');
-  }
- 
+  // Unused filters and excel logic removed
+
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
@@ -599,7 +403,7 @@ function EmployeeDashboard() {
       </div>
     );
   }
- 
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
@@ -613,7 +417,7 @@ function EmployeeDashboard() {
       </div>
     );
   }
- 
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* LogoutModal always rendered above, not blurred */}
@@ -621,7 +425,7 @@ function EmployeeDashboard() {
       {/* Blurred content (sidebar + main) */}
       <div className={showLogoutModal ? 'flex flex-1 filter blur-sm pointer-events-none select-none' : 'flex flex-1'}>
         {/* Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${ sidebarCollapsed ? 'w-20' : 'w-64' } bg-white shadow-xl lg:translate-x-0 lg:static ${ sidebarOpen ? 'translate-x-0' : '-translate-x-full' }`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-64'} bg-white shadow-xl lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -631,7 +435,7 @@ function EmployeeDashboard() {
                     <MessageSquare className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                   
+
                     <p className="text-sm text-gray-500">Employee Portal</p>
                   </div>
                 </div>
@@ -647,12 +451,12 @@ function EmployeeDashboard() {
                 )}
               </button>
             </div>
- 
+
             {/* Sidebar Navigation */}
             <nav className="flex-1 p-6 space-y-2">
               {sidebarItems.map(renderSidebarItem)}
             </nav>
- 
+
             {/* Sidebar Footer */}
             <div className="p-6 border-t border-gray-200">
               {!sidebarCollapsed && (
@@ -711,7 +515,7 @@ function EmployeeDashboard() {
                 </div>
               </div>
               <div className="flex items-center space-x-4">
-               
+
                 <button
                   onClick={handleLogoutClick}
                   className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all duration-200"
@@ -722,7 +526,7 @@ function EmployeeDashboard() {
               </div>
             </div>
           </header>
- 
+
           {/* Dashboard Content */}
           <main className="flex-1 overflow-auto p-6 sm:p-4 xs:p-2">
             {activeTab === 'dashboard' && (
@@ -823,12 +627,11 @@ function EmployeeDashboard() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                    ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
                                     ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                                    ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
+                                      ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                                        'bg-gray-100 text-gray-800'
+                                    }`}>
                                     {ticket.status}
                                   </span>
                                 </td>
@@ -837,15 +640,15 @@ function EmployeeDashboard() {
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{
                                   ticket.assignedTo
                                     ? (typeof ticket.assignedTo === 'object'
-                                        ? (ticket.assignedTo.name || ticket.assignedTo.email)
-                                        : ticket.assignedTo)
+                                      ? (ticket.assignedTo.name || ticket.assignedTo.email)
+                                      : ticket.assignedTo)
                                     : '-'
                                 }</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{
                                   ticket.assignedBy
                                     ? (typeof ticket.assignedBy === 'object'
-                                        ? (ticket.assignedBy.name || ticket.assignedBy.email)
-                                        : ticket.assignedBy)
+                                      ? (ticket.assignedBy.name || ticket.assignedBy.email)
+                                      : ticket.assignedBy)
                                     : '-'
                                 }</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.created?.toDate ? ticket.created.toDate().toLocaleString() : (ticket.created ? new Date(ticket.created).toLocaleString() : '')}</td>
@@ -890,12 +693,12 @@ function EmployeeDashboard() {
                 </div>
               </div>
             )}
- 
+
             {activeTab === 'tickets' && <EmployeeTickets selectedProjectId={selectedProjectId} allProjectIds={projects.map(p => p.id)} />}
- 
+
             {activeTab === 'create' && (
               <div className="max-w-auto mx-auto">
-                <Ticketing 
+                <Ticketing
                   onTicketCreated={() => setActiveTab('tickets')}
                   selectedProjectId={selectedProjectId}
                   selectedProjectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
@@ -914,5 +717,5 @@ function EmployeeDashboard() {
     </div>
   );
 }
- 
+
 export default EmployeeDashboard;

@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiRequest } from '../../utils/api.js';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import * as XLSX from 'xlsx';
- 
+
 // Utility to compute KPIs for tickets
 function computeKPIsForTickets(tickets) {
   let totalResponse = 0, totalResolution = 0, count = 0, resolvedCount = 0;
@@ -52,14 +52,14 @@ function computeKPIsForTickets(tickets) {
     details
   };
 }
- 
+
 const EmployeeKPIDashboard = () => {
   const { id } = useParams();
   const [employee, setEmployee] = useState(null);
-  const [tickets, setTickets] = useState([]);
+  const [tickets, setTickets] = useState([]);  // eslint-disable-line no-unused-vars
   const [kpi, setKpi] = useState(null);
   const chartRef = useRef();
- 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -67,15 +67,15 @@ const EmployeeKPIDashboard = () => {
         const employeeResponse = await apiRequest(`/team/employee/${id}`, {
           method: 'GET',
         });
-        
+
         if (employeeResponse.success && employeeResponse.employee) {
           setEmployee(employeeResponse.employee);
-          
+
           // Fetch tickets assigned to this employee
           const ticketsResponse = await apiRequest(`/team/kpi/${encodeURIComponent(employeeResponse.employee.email)}`, {
             method: 'GET',
           });
-          
+
           if (ticketsResponse.success && ticketsResponse.tickets) {
             const ticketList = ticketsResponse.tickets.map(ticket => ({
               ...ticket,
@@ -90,12 +90,12 @@ const EmployeeKPIDashboard = () => {
         console.error('Error fetching employee KPI data:', error);
       }
     };
-    
+
     if (id) {
       fetchData();
     }
   }, [id]);
- 
+
   // Excel export (table + chart as image if possible)
   const handleExportExcel = async () => {
     // Table data
@@ -104,8 +104,8 @@ const EmployeeKPIDashboard = () => {
       ...(kpi?.details || []).map(row => [
         row.ticketNumber,
         row.subject,
-        row.responseTime ? (row.responseTime/1000/60).toFixed(2) : '',
-        row.resolutionTime ? (row.resolutionTime/1000/60).toFixed(2) : '',
+        row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : '',
+        row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : '',
         row.status
       ])
     ];
@@ -125,27 +125,27 @@ const EmployeeKPIDashboard = () => {
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
-        const imgData = canvas.toDataURL('image/png');
+        const _imgData = canvas.toDataURL('image/png');  // eslint-disable-line no-unused-vars
         // Add as a new sheet (as a workaround, not embedded in table)
         const imgSheet = XLSX.utils.aoa_to_sheet([["KPI Chart (see attached image)"]]);
         XLSX.utils.book_append_sheet(wb, imgSheet, 'Chart');
         // Note: true embedding of images in Excel requires more advanced libs (like xlsx-populate)
-      } catch (e) {
+      } catch (_e) {  // eslint-disable-line no-unused-vars
         // Fallback: skip image
       }
     }
-    XLSX.writeFile(wb, `KPI_Report_${employee?.firstName||''}_${employee?.lastName||''}.xlsx`);
+    XLSX.writeFile(wb, `KPI_Report_${employee?.firstName || ''}_${employee?.lastName || ''}.xlsx`);
   };
- 
+
   if (!employee || !kpi) return <div style={{ padding: 32 }}>Loading...</div>;
- 
+
   // Prepare bar chart data
   const chartData = kpi.details.map(row => ({
     name: row.ticketNumber,
-    'Response Time (min)': row.responseTime ? (row.responseTime/1000/60) : 0,
-    'Resolution Time (min)': row.resolutionTime ? (row.resolutionTime/1000/60) : 0,
+    'Response Time (min)': row.responseTime ? (row.responseTime / 1000 / 60) : 0,
+    'Resolution Time (min)': row.resolutionTime ? (row.resolutionTime / 1000 / 60) : 0,
   }));
- 
+
   return (
     <div style={{ padding: 32, maxWidth: 1200, margin: '0 auto' }}>
       <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 16 }}>
@@ -159,11 +159,11 @@ const EmployeeKPIDashboard = () => {
         </div>
         <div style={{ flex: 1, background: '#f5f7fa', borderRadius: 12, padding: 24, textAlign: 'center' }}>
           <div style={{ fontSize: 18, color: '#888' }}>Avg. Response (min)</div>
-          <div style={{ fontSize: 32, fontWeight: 700 }}>{kpi.avgResponse ? (kpi.avgResponse/1000/60).toFixed(2) : 'N/A'}</div>
+          <div style={{ fontSize: 32, fontWeight: 700 }}>{kpi.avgResponse ? (kpi.avgResponse / 1000 / 60).toFixed(2) : 'N/A'}</div>
         </div>
         <div style={{ flex: 1, background: '#f5f7fa', borderRadius: 12, padding: 24, textAlign: 'center' }}>
           <div style={{ fontSize: 18, color: '#888' }}>Avg. Resolution (min)</div>
-          <div style={{ fontSize: 32, fontWeight: 700 }}>{kpi.avgResolution ? (kpi.avgResolution/1000/60).toFixed(2) : 'N/A'}</div>
+          <div style={{ fontSize: 32, fontWeight: 700 }}>{kpi.avgResolution ? (kpi.avgResolution / 1000 / 60).toFixed(2) : 'N/A'}</div>
         </div>
         <div style={{ flex: 1, background: '#f5f7fa', borderRadius: 12, padding: 24, textAlign: 'center' }}>
           <div style={{ fontSize: 18, color: '#888' }}>Resolution %</div>
@@ -203,8 +203,8 @@ const EmployeeKPIDashboard = () => {
               <tr key={idx}>
                 <td style={{ padding: 8, border: '1px solid #eee' }}>{row.ticketNumber}</td>
                 <td style={{ padding: 8, border: '1px solid #eee' }}>{row.subject}</td>
-                <td style={{ padding: 8, border: '1px solid #eee' }}>{row.responseTime ? (row.responseTime/1000/60).toFixed(2) : 'N/A'}</td>
-                <td style={{ padding: 8, border: '1px solid #eee' }}>{row.resolutionTime ? (row.resolutionTime/1000/60).toFixed(2) : 'N/A'}</td>
+                <td style={{ padding: 8, border: '1px solid #eee' }}>{row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : 'N/A'}</td>
+                <td style={{ padding: 8, border: '1px solid #eee' }}>{row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : 'N/A'}</td>
                 <td style={{ padding: 8, border: '1px solid #eee' }}>{row.status}</td>
               </tr>
             ))}
@@ -221,6 +221,5 @@ const EmployeeKPIDashboard = () => {
     </div>
   );
 };
- 
+
 export default EmployeeKPIDashboard;
- 

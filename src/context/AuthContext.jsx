@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
+import PropTypes from 'prop-types';
 
 const AuthContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -19,6 +21,18 @@ export const AuthProvider = ({ children }) => {
   // Check authentication on mount
   useEffect(() => {
     checkAuth();
+
+    // Listen for unauthorized events (soft logout)
+    const handleUnauthorized = () => {
+      logout();
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAuth = async () => {
@@ -30,30 +44,69 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Verify token with backend
-      const response = await apiRequest('/auth/verify', {
+      const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
+      const verifyUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/auth/me`;
+
+      // Verify token with external API only
+      const response = await fetch(verifyUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (response.success) {
-        setUser(response.user);
-        setIsAuthenticated(true);
-        // Update localStorage with latest user info
-        localStorage.setItem('userInfo', JSON.stringify({
-          name: `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim() || response.user.email,
-          empId: response.user.empId,
-          clientId: response.user.clientId,
-          role: response.user.role,
-          project: response.user.project || null
-        }));
-        localStorage.setItem('userRole', response.user.role);
-        localStorage.setItem('userId', response.user.id);
+      if (response.ok) {
+        const data = await response.json();
+        // The external API verify endpoint likely returns a similar user object structure
+        if (data.user) {
+          const fullName = data.user.fullName || '';
+          const nameParts = fullName.split(' ');
+
+          const mappedUser = {
+            id: data.user.id || data.user._id,
+            email: data.user.email,
+            role: data.user.role,
+            empId: data.user.username,
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            fullName: fullName
+          };
+
+          setUser(mappedUser);
+          setIsAuthenticated(true);
+
+          localStorage.setItem('userInfo', JSON.stringify({
+            name: fullName.trim() || data.user.email,
+            empId: mappedUser.empId,
+            clientId: data.user.clientId,
+            role: data.user.role,
+            project: data.user.project || null
+          }));
+          localStorage.setItem('userRole', data.user.role);
+          localStorage.setItem('userId', mappedUser.id);
+        } else {
+          logout();
+        }
       } else {
-        // Token invalid, clear storage
-        logout();
+        // Fallback to local verify if external fails
+        try {
+          const localResponse = await apiRequest('/auth/verify', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (localResponse.success) {
+            setUser(localResponse.user);
+            setIsAuthenticated(true);
+          } else {
+            logout();
+          }
+        } catch (localError) {
+          console.error('Local auth check error:', localError.message);
+          logout();
+        }
       }
     } catch (error) {
       console.error('Auth check error:', error);
@@ -99,6 +152,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 

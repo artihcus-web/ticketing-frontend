@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Layout from './components/Layout/Layout'
 import { AuthProvider } from './context/AuthContext'
- 
+
 function App() {
   const [showMobilePopup, setShowMobilePopup] = useState(false);
 
@@ -42,4 +42,3 @@ function App() {
 }
 
 export default App
- 

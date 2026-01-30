@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
 const LogoutModal = ({ open, onCancel, onConfirm, loading }) => {
   if (!open) return null;
@@ -26,6 +26,13 @@ const LogoutModal = ({ open, onCancel, onConfirm, loading }) => {
       </div>
     </div>
   );
+};
+
+LogoutModal.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+  loading: PropTypes.bool
 };
 
 export default LogoutModal; 

@@ -1,0 +1,31 @@
+﻿
+H:\articket-master-main\frontend\src\components\pages\ClientDashboard.jsx
+  207:9  error  'scrollToBottom' is assigned a value but never used  no-unused-vars
+
+H:\articket-master-main\frontend\src\components\pages\ClientHeadDashboard.jsx
+   34:3   error  'SLA_RULES' is defined but never used          no-unused-vars
+   36:3   error  'useCountUp' is defined but never used         no-unused-vars
+   37:3   error  'getWeekOfMonth' is defined but never used     no-unused-vars
+   38:3   error  'getMonthLabel' is defined but never used      no-unused-vars
+   42:13  error  'XLSX' is defined but never used               no-unused-vars
+   43:8   error  'ExcelJS' is defined but never used            no-unused-vars
+   44:10  error  'saveAs' is defined but never used             no-unused-vars
+  152:11  error  'offset' is assigned a value but never used    no-unused-vars
+  169:13  error  'firstDay' is assigned a value but never used  no-unused-vars
+
+H:\articket-master-main\frontend\src\components\pages\EmployeeDashboard.jsx
+  300:6  warning  React Hook useEffect has a missing dependency: 'selectedTicket'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+H:\articket-master-main\frontend\src\components\pages\ProjectManagerDashboard.jsx
+   36:3   error    'SLA_RULES' is defined but never used                                                                                           no-unused-vars
+   66:23  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+   70:24  error    'ExcelJS' is not defined                                                                                                        no-undef
+  108:3   error    'saveAs' is not defined                                                                                                         no-undef
+  139:10  error    'kpiFromDate' is assigned a value but never used                                                                                no-unused-vars
+  139:23  error    'setKpiFromDate' is assigned a value but never used                                                                             no-unused-vars
+  140:10  error    'kpiToDate' is assigned a value but never used                                                                                  no-unused-vars
+  140:21  error    'setKpiToDate' is assigned a value but never used                                                                               no-unused-vars
+  408:3   error    'myTickets' is assigned a value but never used                                                                                  no-unused-vars
+
+Γ£û 20 problems (18 errors, 2 warnings)
+

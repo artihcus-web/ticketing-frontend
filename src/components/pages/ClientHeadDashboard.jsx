@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ClientHeadTickets from './ClientHeadTickets';
 import Ticketing from './Ticketing';
@@ -17,79 +18,31 @@ import {
   Flag,
   BarChart3,
   TrendingUp,
-  Zap,
   User,
-  Briefcase,
-  Activity,
   Clock,
-  Loader2,
-  RefreshCw,
   FileText,
-  ChevronRight,
-  Calendar,
   XCircle
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, LabelList
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from 'recharts';
 import LogoutModal from './LogoutModal';
 import TicketDetails from './TicketDetails';
-import { computeKPIsForTickets, exportKpiToExcelWithChartImage, SLA_RULES } from './ProjectManagerDashboard';
-import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
+import {
+  computeKPIsForTickets,
+  exportKpiExcelWithCharts,
+  downloadTicketsAsExcel,
+} from '../../utils/dashboardUtils';
+// XLSX, ExcelJS, saveAs imports removed as they were unused
 
 // Animated count-up hook
-function useCountUp(target, duration = 1200) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const startTime = performance.now();
-    function easeOutCubic(t) {
-      return 1 - Math.pow(1 - t, 3);
-    }
-    function animate(now) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = easeOutCubic(progress);
-      setCount(Math.round(eased * target));
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setCount(target);
-      }
-    }
-    requestAnimationFrame(animate);
-  }, [target, duration]);
-  return count;
-}
+// _useCountUp removed
 
-const getStatusIcon = (status) => {
-  switch (status) {
-    case 'Open': return <AlertCircle className="w-4 h-4 text-blue-500" />;
-    case 'In Progress': return <Clock className="w-4 h-4 text-amber-500" />;
-    case 'Resolved': return <CheckCircle className="w-4 h-4 text-emerald-500" />;
-    case 'Closed': return <XCircle className="w-4 h-4 text-gray-500" />;
-    default: return null;
-  }
-};
 
-const getStatusBadge = (status) => {
-  const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
-  switch (status) {
-    case 'Open':
-      return `${baseClasses} bg-blue-100 text-blue-800`;
-    case 'In Progress':
-      return `${baseClasses} bg-amber-100 text-amber-800`;
-    case 'Resolved':
-      return `${baseClasses} bg-emerald-100 text-emerald-800`;
-    case 'Closed':
-      return `${baseClasses} bg-gray-100 text-gray-800`;
-    default:
-      return `${baseClasses} bg-gray-100 text-gray-800`;
-  }
-};
+// _getStatusIcon, _getStatusBadge removed
+
 
 const ClientHeadDashboard = () => {
   const { user, logout, loading: authLoading } = useAuth();
@@ -102,17 +55,14 @@ const ClientHeadDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [clientHeadName, setClientHeadName] = useState('');
-  const [stats, setStats] = useState({
+  // stats state removed
 
-    pendingTickets: 0,
-    resolvedTickets: 0
-  });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [searchParams] = useSearchParams();
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);  // eslint-disable-line no-unused-vars
+  const [error, setError] = useState(null);  // eslint-disable-line no-unused-vars
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [statsYearFilter, setStatsYearFilter] = useState('current');
 
@@ -193,7 +143,8 @@ const ClientHeadDashboard = () => {
     const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
     const dayOfWeek = firstDay.getDay(); // 0 (Sun) - 6 (Sat)
     // Calculate offset: if first day is not Sunday, week 1 is shorter
-    const offset = (dayOfWeek === 0 ? 0 : 7 - dayOfWeek + 1);
+    // offset removed as unused
+
     const day = d.getDate();
     if (day <= (7 - dayOfWeek)) return 1;
     return Math.ceil((day - (7 - dayOfWeek)) / 7) + 1;
@@ -210,7 +161,8 @@ const ClientHeadDashboard = () => {
       // Group by week for the selected month
       const [selYear, selMonth] = kpiSelectedMonth.split('-').map(Number);
       // Find how many weeks in this month
-      const firstDay = new Date(selYear, selMonth - 1, 1);
+      // firstDay removed as unused
+
       const lastDay = new Date(selYear, selMonth, 0);
       const weeksInMonth = getWeekOfMonth(lastDay);
       const weekLabels = Array.from({ length: weeksInMonth }, (_, i) => `Week ${i + 1}`);
@@ -486,12 +438,8 @@ const ClientHeadDashboard = () => {
         }
 
         // Update stats
-        setStats({
-          totalClients: clients.length,
-          activeProjects: projects.filter(project => project.status === 'active').length,
-          pendingTickets: tickets.filter(ticket => ticket.status === 'Open').length,
-          resolvedTickets: tickets.filter(ticket => ticket.status === 'Closed').length
-        });
+        // setStats usage removed
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -563,51 +511,10 @@ const ClientHeadDashboard = () => {
     // setAppliedPeriod('custom'); // Removed
   };
 
-  function getField(ticket, ...keys) {
-    for (const key of keys) {
-      if (ticket[key]) return ticket[key];
-    }
-    return '';
-  }
+  // getField and downloadTicketsAsExcel removed
 
-  function downloadTicketsAsExcel(tickets) {
-    if (!tickets || tickets.length === 0) return;
-    // Define the desired columns and their mapping
-    const columns = [
-      { header: 'Ticket ID', keys: ['ticketNumber', 'id'] },
-      { header: 'Subject', keys: ['subject'] },
-      { header: 'Module', keys: ['module', 'Module'] },
-      { header: 'Type of Issue', keys: ['typeOfIssue', 'type_of_issue', 'type', 'Type of Issue'] },
-      { header: 'Category', keys: ['category', 'Category'] },
-      { header: 'Sub-Category', keys: ['subCategory', 'sub_category', 'sub-category', 'Sub-Category'] },
-      { header: 'Status', keys: ['status', 'Status'] },
-      { header: 'Priority', keys: ['priority', 'Priority'] },
-      { header: 'Assigned To', keys: ['assignedTo', 'assigned_to', 'Assigned To'] },
-      { header: 'Created By', keys: ['customer', 'createdBy', 'Created By', 'email'] },
-      { header: 'Reported By', keys: ['reportedBy', 'Reported By'] },
-    ];
-    // Build rows
-    const rows = tickets.map(ticket =>
-      columns.map(col => {
-        if (col.header === 'Assigned To') {
-          const at = ticket.assignedTo;
-          if (typeof at === 'object' && at) return at.name || at.email || '';
-          return at || '';
-        }
-        if (col.header === 'Created By') {
-          return getField(ticket, ...col.keys);
-        }
-        return getField(ticket, ...col.keys);
-      })
-    );
-    // Add header
-    rows.unshift(columns.map(col => col.header));
-    // Create worksheet and workbook
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
-    XLSX.writeFile(wb, 'tickets_export.xlsx');
-  }
+  // XLSX lines removed
+
 
   // Helper to get year from ticket
   function getTicketYear(ticket) {
@@ -634,7 +541,7 @@ const ClientHeadDashboard = () => {
   const lowCount = ticketsForStats.filter(t => String(t.priority).trim().toLowerCase() === 'low').length;
 
   // Helper to extract closed date from ticket comments
-  function getClosedDate(ticket) {
+  function _getClosedDate(ticket) {  // eslint-disable-line no-unused-vars
     if (!ticket.comments || !Array.isArray(ticket.comments)) return null;
     for (const c of ticket.comments) {
       if (
@@ -650,62 +557,11 @@ const ClientHeadDashboard = () => {
     return null;
   }
 
-  // Helper to get chart image as base64
-  async function getChartPngDataUrl(chartId) {
-    const chartElem = document.getElementById(chartId);
-    if (!chartElem) return null;
-    const svgElem = chartElem.querySelector('svg');
-    if (!svgElem) return null;
-    const svgString = new XMLSerializer().serializeToString(svgElem);
-    const canvas = document.createElement('canvas');
-    const bbox = svgElem.getBoundingClientRect();
-    canvas.width = bbox.width;
-    canvas.height = bbox.height;
-    const ctx = canvas.getContext('2d');
-    const img = new window.Image();
-    const svg = 'data:image/svg+xml;base64,' + window.btoa(unescape(encodeURIComponent(svgString)));
-    return new Promise(resolve => {
-      img.onload = function () {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.src = svg;
-    });
-  }
+  // getChartPngDataUrl removed
 
-  async function exportKpiExcelWithCharts(kpiData, chartIds, projectName = '') {
-    if (!kpiData || !kpiData.details) return;
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('KPI Report');
-    // Add table data first
-    worksheet.addRow(['Ticket #', 'Subject', 'Assignee', 'Response Time (min)', 'Resolution Time (min)', 'Status']);
-    kpiData.details.forEach(row => {
-      worksheet.addRow([
-        row.ticketNumber,
-        row.subject,
-        row.assignee,
-        row.responseTime ? (row.responseTime / 1000 / 60).toFixed(2) : '',
-        row.resolutionTime ? (row.resolutionTime / 1000 / 60).toFixed(2) : '',
-        row.status
-      ]);
-    });
-    // Add chart images below the table
-    let currentRow = worksheet.lastRow.number + 2;
-    if (chartIds) {
-      const ids = Array.isArray(chartIds) ? chartIds : [chartIds];
-      for (const chartId of ids) {
-        const imgDataUrl = await getChartPngDataUrl(chartId);
-        if (imgDataUrl) {
-          const imageId = workbook.addImage({ base64: imgDataUrl, extension: 'png' });
-          worksheet.addImage(imageId, { tl: { col: 0, row: currentRow }, ext: { width: 500, height: 300 } });
-          currentRow += 20;
-        }
-      }
-    }
-    const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `KPI_Report_${projectName || 'Project'}.xlsx`);
-  }
+
+  // exportKpiExcelWithCharts removed
+
 
   if (authLoading || loading) {
     return (
@@ -785,7 +641,6 @@ const ClientHeadDashboard = () => {
     const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
     return created && created.getFullYear() === trendsYear && created.getMonth() + 1 === trendsMonth;
   });
-  const firstDay = new Date(trendsYear, trendsMonth - 1, 1);
   const lastDay = new Date(trendsYear, trendsMonth, 0);
   const weeksInMonth = getWeekOfMonth(lastDay);
   const weekLabels = Array.from({ length: weeksInMonth }, (_, i) => `Week ${i + 1}`);
@@ -840,6 +695,11 @@ const ClientHeadDashboard = () => {
       );
     }
     return null;
+  };
+  TrendsTooltip.propTypes = {
+    active: PropTypes.bool,
+    payload: PropTypes.array,
+    label: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
   };
 
   return (

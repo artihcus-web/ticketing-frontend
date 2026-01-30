@@ -1,0 +1,17 @@
+﻿
+H:\articket-master-main\frontend\src\components\pages\ClientHeadDashboard.jsx
+    37:13  error  'XLSX' is defined but never used               no-unused-vars
+    38:8   error  'ExcelJS' is defined but never used            no-unused-vars
+    39:10  error  'saveAs' is defined but never used             no-unused-vars
+   147:11  error  'offset' is assigned a value but never used    no-unused-vars
+   164:13  error  'firstDay' is assigned a value but never used  no-unused-vars
+   180:23  error  'computeKPIsForTickets' is not defined         no-undef
+   185:23  error  'computeKPIsForTickets' is not defined         no-undef
+   225:23  error  'computeKPIsForTickets' is not defined         no-undef
+   230:23  error  'computeKPIsForTickets' is not defined         no-undef
+   986:43  error  'computeKPIsForTickets' is not defined         no-undef
+  1181:43  error  'computeKPIsForTickets' is not defined         no-undef
+  1240:41  error  'computeKPIsForTickets' is not defined         no-undef
+
+Γ£û 12 problems (12 errors, 0 warnings)
+

@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { BsTicketFill, BsFolderFill } from 'react-icons/bs';
 import TicketDetails from './TicketDetails';
 import { sendEmail } from '../../utils/sendEmail';
-import { fetchProjectMemberEmails } from '../../utils/emailUtils';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
- 
+import PropTypes from 'prop-types';
+
 // Helper to safely format timestamps
 function formatTimestamp(ts) {
   if (!ts) return '';
@@ -20,9 +20,10 @@ function formatTimestamp(ts) {
   }
   return '';
 }
- 
+
 const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjectName, allProjectIds = [], setViewingTicket }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [ticketsData, setTicketsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,11 +31,9 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
   const [filterStatus, setFilterStatus] = useState(['All']);
   const [filterPriority, setFilterPriority] = useState(['All']);
   const [searchTerm, setSearchTerm] = useState('');
-  const [teamMembers, setTeamMembers] = useState([]);
   const [filterRaisedByEmployee, setFilterRaisedByEmployee] = useState('all');
   const [filterRaisedByClient, setFilterRaisedByClient] = useState('all');
   const [currentUserEmail, setCurrentUserEmail] = useState('');
-  const [projects, setProjects] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [clients, setClients] = useState([]);
   const [currentUserData, setCurrentUserData] = useState(null);
@@ -48,7 +47,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [quickDate, setQuickDate] = useState('');
- 
+
   useEffect(() => {
     // Guard: skip effect if required props are missing
     if (!selectedProjectName || selectedProjectName.trim() === '' || !selectedProjectId || selectedProjectId.trim() === '') {
@@ -59,24 +58,23 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
       setClients([]);
       return;
     }
-    
+
     if (!user) {
       setLoading(false);
       setTicketsData([]);
-      setTeamMembers([]);
       return;
     }
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchData = async () => {
       try {
         if (isInitialLoad) {
           setLoading(true);
         }
         setCurrentUserEmail(user.email);
-        
+
         // Fetch user data
         const userResponse = await apiRequest('/dashboards/user', { method: 'GET' });
         if (userResponse.success && userResponse.user) {
@@ -99,7 +97,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
         const membersResponse = await apiRequest(`/tickets/project-members?projectName=${encodeURIComponent(selectedProjectName)}`, {
           method: 'GET',
         });
-        
+
         if (membersResponse.success && membersResponse.members) {
           const members = membersResponse.members;
           setEmployees(members.filter(m => m.role === 'employee' || m.role === 'project_manager'));
@@ -125,7 +123,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
               console.error(`Error fetching tickets for project ${projectId}:`, err);
             }
           }
-          
+
           // Deduplicate by id
           const ticketMap = {};
           allTickets.forEach(ticket => {
@@ -142,7 +140,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
           const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProjectName)}`, {
             method: 'GET',
           });
-          
+
           if (ticketsResponse.success && ticketsResponse.tickets) {
             const ticketsData = ticketsResponse.tickets.map(ticket => ({
               ...ticket,
@@ -162,9 +160,9 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
         }
       }
     };
-    
+
     fetchData();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -175,9 +173,9 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -191,15 +189,15 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, selectedProjectId, selectedProjectName, allProjectIds]);
- 
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) setStatusDropdownOpen(false);
@@ -208,23 +206,23 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
- 
-  const summarize = (arr, allLabel, options) => {
+
+  const summarize = (arr, allLabel, _options) => {  // eslint-disable-line no-unused-vars
     if (arr.includes('All')) return allLabel;
     if (arr.length === 0) return allLabel;
     return arr.join(', ');
   };
- 
+
   const handleTicketClick = (ticketId) => {
     setSelectedTicketId(ticketId);
     if (setViewingTicket) setViewingTicket(true);
   };
- 
+
   const handleBackToTickets = () => {
     setSelectedTicketId(null);
     if (setViewingTicket) setViewingTicket(false);
   };
- 
+
   const handleAssignTicket = async (ticketId, selectedUserEmail) => {
     const ticket = ticketsData.find(t => t.id === ticketId);
     if (!ticketId || !user || !selectedUserEmail || !ticket) return;
@@ -295,7 +293,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
             ? `${userData.firstName} ${userData.lastName}`.trim()
             : (userData.firstName || userData.lastName || userData.email);
         }
-      } catch (e) { /* fallback to email */ }
+      } catch (_e) { /* fallback to email */ }  // eslint-disable-line no-unused-vars
 
       const emailParams = {
         to_email: recipientEmail,
@@ -309,7 +307,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
         ticket_link: `https://articket.vercel.app/tickets/${ticket.id}`,
       };
       await sendEmail(emailParams, 'template_igl3oxn');
-      
+
       // Refresh tickets
       const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProjectName)}`, {
         method: 'GET',
@@ -329,39 +327,9 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
   };
 
   // Add this function to allow unassigning a ticket
-  const handleUnassignTicket = async (ticketId) => {
-    if (!ticketId || !user) return;
-    try {
-      const updateResponse = await apiRequest(`/tickets/${ticketId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          assignedTo: null,
-          assignedBy: null,
-        }),
-      });
-      
-      if (!updateResponse.success) {
-        throw new Error(updateResponse.error || 'Failed to unassign ticket');
-      }
-      
-      // Refresh tickets
-      const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProjectName)}`, {
-        method: 'GET',
-      });
-      if (ticketsResponse.success && ticketsResponse.tickets) {
-        const ticketsData = ticketsResponse.tickets.map(t => ({
-          ...t,
-          created: t.created ? new Date(t.created) : null,
-          lastUpdated: t.lastUpdated ? new Date(t.lastUpdated) : null,
-        }));
-        setTicketsData(ticketsData);
-      }
-    } catch (err) {
-      console.error('Error unassigning ticket:', err);
-      setError(err.message || 'Failed to unassign ticket');
-    }
-  };
- 
+  // handleUnassignTicket removed as it was unused
+
+
   const handleCheckboxFilter = (filter, setFilter, value) => {
     if (value === 'All') {
       setFilter(['All']);
@@ -378,7 +346,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
       });
     }
   };
- 
+
   // Date filter logic
   const applyQuickDate = (type) => {
     setQuickDate(type);
@@ -398,12 +366,12 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
     setDateFrom(from);
     setDateTo(to);
   };
-  const clearDateFilter = () => {
+  const _clearDateFilter = () => {  // eslint-disable-line no-unused-vars
     setDateFrom('');
     setDateTo('');
     setQuickDate('');
   };
- 
+
   // Compute filtered tickets
   const filteredTickets = ticketsData.filter(ticket => {
     const matchesStatus = filterStatus.includes('All') || filterStatus.includes(ticket.status);
@@ -447,21 +415,21 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
 
     return matchesStatus && matchesPriority && matchesSearch && matchesRaisedBy && matchesDate;
   });
- 
+
   // Sort tickets by date
   const sortedTickets = [...filteredTickets].sort((a, b) => {
     const dateA = a.created?.toDate ? a.created.toDate() : new Date(a.created);
     const dateB = b.created?.toDate ? b.created.toDate() : new Date(b.created);
     return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
   });
- 
+
   // Ticket counts for cards
   const totalTickets = ticketsData.length;
   const openTickets = ticketsData.filter(t => t.status === 'Open').length;
   const inProgressTickets = ticketsData.filter(t => t.status === 'In Progress').length;
   const resolvedTickets = ticketsData.filter(t => t.status === 'Resolved').length;
   const closedTickets = ticketsData.filter(t => t.status === 'Closed').length;
- 
+
   function calculateTimes(ticket) {
     let responseTime = '';
     let resolutionTime = '';
@@ -486,14 +454,10 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
     if (assigned && resolved) resolutionTime = ((resolved - assigned) / 60000).toFixed(2);
     return { responseTime, resolutionTime };
   }
- 
-  function safeCellValue(val) {
-    if (typeof val === 'string') return val.length > 10000 ? val.slice(0, 10000) + '... [truncated]' : val;
-    if (Array.isArray(val)) return `[${val.length} items]`;
-    if (typeof val === 'object' && val !== null) return '[object]';
-    return val ?? '';
-  }
- 
+
+  // safeCellValue removed as it was unused
+
+
   function summarizeResponses(responses) {
     if (!Array.isArray(responses) || responses.length === 0) return '';
     // Summarize as count and first/last message
@@ -577,14 +541,14 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
     XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
     XLSX.writeFile(wb, 'tickets_export.xlsx');
   }
- 
+
   // Add handler for checkbox
   const handleCheckboxChange = (ticketId) => {
     setSelectedTicketIds(prev =>
       prev.includes(ticketId) ? prev.filter(id => id !== ticketId) : [...prev, ticketId]
     );
   };
- 
+
   // Add handler for select all
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -593,7 +557,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
       setSelectedTicketIds([]);
     }
   };
- 
+
   const clearFilters = () => {
     setFilterStatus(['All']);
     setFilterPriority(['All']);
@@ -605,7 +569,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
     setDateTo('');
     setQuickDate('');
   };
- 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -616,7 +580,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
       </div>
     );
   }
- 
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -627,11 +591,11 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
       </div>
     );
   }
- 
+
   if (selectedTicketId) {
     return <TicketDetails ticketId={selectedTicketId} onBack={handleBackToTickets} onAssign={handleAssignTicket} />;
   }
- 
+
   return (
     <>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
@@ -669,11 +633,11 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
           <p className="text-gray-700 mt-2">Project: {selectedProjectId === 'all' ? 'All Projects' : selectedProjectName}</p>
         )} */}
       </div>
- 
+
       <div className="flex justify-between items-center mb-8">
         <div>
           <button
-            onClick={() => setActiveTab('create')}
+            onClick={() => setActiveTab ? setActiveTab('create') : navigate('/ticketing')}
             className="bg-gradient-to-r from-[#FFA14A] to-[#FFB86C] hover:from-[#FFB86C] hover:to-[#FFA14A] text-white px-6 py-2 rounded-lg transition-colors duration-200 flex items-center font-semibold shadow"
           >
             <BsFolderFill className="mr-2 text-white" />
@@ -681,7 +645,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
           </button>
         </div>
       </div>
- 
+
       {/* Updated Filters Bar */}
       <div className="flex flex-wrap items-center gap-4 mb-6 bg-white p-4 rounded-xl shadow border border-gray-100">
         <div>
@@ -824,7 +788,7 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
           Download
         </button>
       </div>
- 
+
       {/* Only show tickets if filtersApplied is true */}
       {filtersApplied && sortedTickets.length > 0 ? (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
@@ -893,12 +857,11 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
                       {ticket.subject}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        ticket.status === 'Open' ? 'bg-orange-100 text-orange-800' :
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-orange-100 text-orange-800' :
                         ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                        ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
                         {ticket.status}
                       </span>
                     </td>
@@ -929,10 +892,18 @@ const ProjectManagerTickets = ({ setActiveTab, selectedProjectId, selectedProjec
       ) : filtersApplied ? (
         <div className="text-gray-400 text-center py-12">No tickets found for selected filters.</div>
       ) : (
-        <div className="text-gray-400 text-center py-12">Select filters and click 'Apply Filters' to view tickets.</div>
+        <div className="text-gray-400 text-center py-12">Select filters and click &apos;Search&apos; to view tickets.</div>
       )}
     </>
   );
 };
- 
+
+ProjectManagerTickets.propTypes = {
+  setActiveTab: PropTypes.func,
+  selectedProjectId: PropTypes.string,
+  selectedProjectName: PropTypes.string,
+  allProjectIds: PropTypes.array,
+  setViewingTicket: PropTypes.func
+};
+
 export default ProjectManagerTickets;

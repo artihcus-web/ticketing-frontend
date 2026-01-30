@@ -1,0 +1,8 @@
+﻿
+H:\articket-master-main\frontend\src\components\pages\Ticketing.jsx
+  302:6  warning  React Hook useEffect has a missing dependency: 'formData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  305:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+Γ£û 2 problems (0 errors, 2 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

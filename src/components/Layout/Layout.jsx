@@ -1,11 +1,11 @@
-import React from 'react'
-import {BrowserRouter as Router} from 'react-router-dom'
+// Layout component
+import { BrowserRouter as Router } from 'react-router-dom'
 import Routers from '../Routers/Routers'
 function Layout() {
   return (
     <Router>
-      
-        <Routers />
+
+      <Routers />
     </Router>
   )
 }

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { apiRequest } from "../../utils/api.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import artihcusLogo from '../../assets/AMS.png';
- 
+
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -14,9 +14,9 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
- 
+
   useEffect(() => {
-    setEmail("");
+    setIdentifier("");
     setPassword("");
   }, []);
   const handleSubmit = async (e) => {
@@ -24,56 +24,132 @@ const Login = () => {
     setError("");
     setIsLoading(true);
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       setError("Please fill in all fields");
       setIsLoading(false);
       return;
     }
-    try {
-      // Call backend API for login
-      const response = await apiRequest('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
 
-      if (!response.success) {
-        setError(response.error || "Invalid email or password");
-        setIsLoading(false);
-        return;
+    try {
+      const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
+      const loginUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/auth/login`;
+
+      let data;
+      let externalSuccess = false;
+
+      // 1. Try external authentication
+      try {
+        const payload = {
+          username: identifier,
+          password: password
+        };
+
+        const response = await fetch(loginUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+          const externalData = await response.json();
+          // The external API returns { message: "Login successful", token: "...", user: { ... } }
+          if (externalData.token && externalData.user) {
+            // Map external user structure to local expectation
+            const fullName = externalData.user.fullName || '';
+            const nameParts = fullName.split(' ');
+
+            data = {
+              token: externalData.token,
+              user: {
+                id: externalData.user.id,
+                email: externalData.user.email,
+                role: externalData.user.role,
+                empId: externalData.user.username, // username is the employee ID in the external system
+                firstName: nameParts[0] || '',
+                lastName: nameParts.slice(1).join(' ') || '',
+                fullName: fullName
+              }
+            };
+            externalSuccess = true;
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("External login error:", response.status, errorData);
+        }
+      } catch (externalErr) {
+        console.error("External login connection failed:", externalErr.message);
+      }
+
+      // 2. Fallback to local API if external fails (for Admins)
+      if (!externalSuccess) {
+        try {
+          const localResponse = await apiRequest('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ identifier, password }),
+          });
+
+          if (localResponse.success) {
+            data = localResponse;
+          } else {
+            setError(localResponse.error || "Invalid email or password");
+            setIsLoading(false);
+            return;
+          }
+        } catch (localErr) {
+          console.error("Local login failed:", localErr.message);
+          setError(localErr.message || "Invalid email or password");
+          setIsLoading(false);
+          return;
+        }
       }
 
       // Login using AuthContext (stores token and user data)
-      login(response.token, response.user);
+      login(data.token, data.user);
 
-      // 🚀 Redirect based on role or redirect param
+      // Redirect based on role or redirect param
       const params = new URLSearchParams(location.search);
       const redirect = params.get('redirect');
       if (redirect) {
         navigate(redirect, { replace: true });
         return;
       }
-      
-      // Use redirectPath from backend response
-      navigate(response.redirectPath || "/access-denied", { replace: true });
+
+      // Determine default redirect path if not provided
+      let redirectPath = data.redirectPath;
+      if (!redirectPath) {
+        const role = data.user?.role?.toLowerCase();
+        switch (role) {
+          case 'admin':
+            redirectPath = '/admin';
+            break;
+          case 'employee':
+            redirectPath = '/employeedashboard';
+            break;
+          case 'client':
+            redirectPath = '/clientdashboard';
+            break;
+          case 'project_manager':
+            redirectPath = '/project-manager-dashboard';
+            break;
+          case 'client_head':
+            redirectPath = '/client-head-dashboard';
+            break;
+          default:
+            redirectPath = '/access-denied';
+        }
+      }
+
+      navigate(redirectPath, { replace: true });
 
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Login process error:", err);
       setIsLoading(false);
-      if (err.message?.includes('Invalid email or password') || 
-          err.message?.includes('invalid-credential') || 
-          err.message?.includes('user-not-found') || 
-          err.message?.includes('wrong-password')) {
-        setError("Invalid email or password");
-      } else if (err.message?.includes('deleted by the admin')) {
-        setError('Your account has been deleted by the admin.');
-      } else if (err.message?.includes('disabled by the admin')) {
-        setError('Your account has been disabled by the admin.');
-      } else {
-        setError(err.message || "An unexpected error occurred. Please try again.");
-      }
+      setError(err.message || "An unexpected error occurred. Please try again.");
     }
   };
- 
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-sm lg:w-96 mx-auto">
@@ -89,7 +165,7 @@ const Login = () => {
             with Artihcus. <span className="text-orange-500 font-medium">Get started ..</span>
           </p>
         </div>
- 
+
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
             <div className="flex">
@@ -108,21 +184,21 @@ const Login = () => {
             </div>
           </div>
         )}
- 
+
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <input
-              id="email"
-              name="email"
-              type="email"
+              id="identifier"
+              name="identifier"
+              type="text"
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-full bg-gray-50 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address or Employee ID"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
- 
+
           <div className="relative">
             <input
               id="password"
@@ -145,7 +221,7 @@ const Login = () => {
               )}
             </div>
           </div>
- 
+
           <div className="flex justify-end">
             <button
               type="button"
@@ -155,7 +231,7 @@ const Login = () => {
               Forgot Password?
             </button>
           </div>
- 
+
           <button
             type="submit"
             disabled={isLoading}
@@ -174,13 +250,12 @@ const Login = () => {
             )}
           </button>
         </form>
- 
-       
+
+
       </div>
     </div>
   );
 };
- 
+
 export default Login;
- 
- 
+

@@ -1,4 +1,4 @@
-import React from 'react';
+// Routers component
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Admin from "../pages/Admin";
 import ClientDashboard from '../pages/ClientDashboard';
@@ -19,7 +19,7 @@ import ClientHeadTickets from '../pages/ClientHeadTickets';
 import ProjectManagerTickets from '../pages/ProjectManagerTickets';
 import EditTicketForm from '../pages/EditTicketForm';
 import ProjectTickets from '../pages/ProjectTickets';
- 
+
 import { useAuth } from '../../context/AuthContext';
 
 // Protected Route component
@@ -39,7 +39,7 @@ function ProtectedRoute({ children }) {
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
- 
+
 // Utility to get dashboard route for a given role
 function getDashboardRouteForRole(role) {
   switch (role) {
@@ -51,13 +51,14 @@ function getDashboardRouteForRole(role) {
       return '/clientdashboard';
     case 'employee':
       return '/employeedashboard';
+    case 'manager':
     case 'project_manager':
       return '/project-manager-dashboard';
     default:
       return '/login';
   }
 }
- 
+
 // Admin Route component
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
@@ -76,7 +77,7 @@ function AdminRoute({ children }) {
 AdminRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
- 
+
 // Employee Route component
 function EmployeeRoute({ children }) {
   const { user, loading } = useAuth();
@@ -94,7 +95,7 @@ function EmployeeRoute({ children }) {
 EmployeeRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
- 
+
 // Client Head Route component
 function ClientHeadRoute({ children }) {
   const { user, loading } = useAuth();
@@ -112,7 +113,7 @@ function ClientHeadRoute({ children }) {
 ClientHeadRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
- 
+
 // Client Route component
 function ClientRoute({ children }) {
   const { user, loading } = useAuth();
@@ -130,7 +131,7 @@ function ClientRoute({ children }) {
 ClientRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
- 
+
 // Project Manager Route component
 function ProjectManagerRoute({ children }) {
   const { user, loading } = useAuth();
@@ -139,7 +140,7 @@ function ProjectManagerRoute({ children }) {
     return <div>Loading...</div>;
   }
 
-  if (!user || user.role !== 'project_manager') {
+  if (!user || (user.role !== 'project_manager' && user.role !== 'manager')) {
     return <Navigate to={getDashboardRouteForRole(user?.role)} replace />;
   }
 
@@ -148,7 +149,7 @@ function ProjectManagerRoute({ children }) {
 ProjectManagerRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
- 
+
 // AuthRedirectRoute: Redirects authenticated users away from login/forgot-password
 function AuthRedirectRoute({ children }) {
   const { user, loading } = useAuth();
@@ -166,14 +167,14 @@ function AuthRedirectRoute({ children }) {
 AuthRedirectRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
- 
+
 function Routers() {
   return (
     <Routes>
       {/* Public routes (redirect if already authenticated) */}
       <Route path="/login" element={<AuthRedirectRoute><Login /></AuthRedirectRoute>} />
       <Route path="/forgot-password" element={<AuthRedirectRoute><Forgot /></AuthRedirectRoute>} />
- 
+
       {/* Protected routes */}
       <Route
         path="*"
@@ -206,7 +207,7 @@ function Routers() {
                   <ProjectTickets />
                 </AdminRoute>
               } />
- 
+
               {/* Client Head-only routes */}
               <Route path="/client-head-dashboard" element={
                 <ClientHeadRoute>
@@ -218,7 +219,7 @@ function Routers() {
                   <ClientHeadTickets />
                 </ClientHeadRoute>
               } />
- 
+
               {/* Client-only routes */}
               <Route path="/clientdashboard" element={
                 <ClientRoute>
@@ -230,7 +231,7 @@ function Routers() {
                   <ClientTickets />
                 </ClientRoute>
               } />
- 
+
               {/* Project Manager-only routes */}
               <Route path="/project-manager-dashboard" element={
                 <ProjectManagerRoute>
@@ -247,7 +248,7 @@ function Routers() {
                   <EmployeeKPIDashboard />
                 </ProjectManagerRoute>
               } />
- 
+
               {/* Employee-only routes */}
               <Route path="/employeedashboard" element={
                 <EmployeeRoute>
@@ -259,7 +260,7 @@ function Routers() {
                   <EmployeeTickets />
                 </EmployeeRoute>
               } />
- 
+
               {/* Other routes (accessible to any authenticated user) */}
               <Route path="/ticketing" element={<Ticketing />} />
               <Route path="/tickets/:ticketId" element={<TicketDetailsWrapper />} />
@@ -274,7 +275,6 @@ function Routers() {
     </Routes>
   );
 }
- 
+
 export default Routers;
- 
- 
+

@@ -1,101 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Mail,
   AlertCircle,
-  CheckCircle,
-  Clock,
-  XCircle,
   Plus,
   MessageSquare,
-  Send,
   User,
-  Search,
-  Filter,
-  ChevronDown,
   Loader2,
-  Paperclip,
-  Trash2,
   RefreshCw,
-  Calendar,
-  Tag,
-  ChevronRight,
   LogOut,
   Home,
   FileText,
-  Settings,
-  Bell,
   Menu,
-  X,
   ChevronsLeft,
   ChevronsRight,
-  Flag,
-  Edit,
-  ChevronLeft,
-  BarChart3,
-  PieChart,
-  Zap,
-  TrendingUp,
-  Activity
+  Zap
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import Ticketing from './Ticketing'; // Import the Ticketing component
-import ClientTickets from './ClientTickets'; // Import the ClientTickets component
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
+import Ticketing from './Ticketing';
+import ClientTickets from './ClientTickets';
 import LogoutModal from './LogoutModal';
 import TicketDetails from './TicketDetails';
-import * as XLSX from 'xlsx';
- 
+import { downloadTicketsAsExcel } from '../../utils/dashboardUtils';
+
+
 // Animated count-up hook
-function useCountUp(target, duration = 1200) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const startTime = performance.now();
-    function easeOutCubic(t) {
-      return 1 - Math.pow(1 - t, 3);
-    }
-    function animate(now) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = easeOutCubic(progress);
-      setCount(Math.round(eased * target));
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setCount(target);
-      }
-    }
-    requestAnimationFrame(animate);
-    // eslint-disable-next-line
-  }, [target, duration]);
-  return count;
-}
- 
+// useCountUp definition removed
+
+
 function ClientDashboard() {
   const { user, logout } = useAuth();
   const [tickets, setTickets] = useState([]);
-  const [selectedTicket, setSelectedTicket] = useState(null);
   const [error, setError] = useState(null);
-  const [newResponse, setNewResponse] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [clientName, setClientName] = useState('');
-  const [requesterNameFilter, setRequesterNameFilter] = useState('');
-  const [technicianFilter, setTechnicianFilter] = useState('');
-  const [dueDateFilter, setDueDateFilter] = useState('');
-  const [createdDateFilter, setCreatedDateFilter] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
-  const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [searchParams] = useSearchParams();
@@ -108,12 +50,10 @@ function ClientDashboard() {
   const [appliedFromDate, setAppliedFromDate] = useState('');
   const [appliedToDate, setAppliedToDate] = useState('');
   const [appliedPeriod, setAppliedPeriod] = useState('custom');
- 
+
   // Animated counts for priorities (must be at top level, not inside JSX)
-  const highCount = useCountUp(tickets.filter(t => t.priority === 'High').length);
-  const mediumCount = useCountUp(tickets.filter(t => t.priority === 'Medium').length);
-  const lowCount = useCountUp(tickets.filter(t => t.priority === 'Low').length);
- 
+  // _highCount, _mediumCount, _lowCount removed
+
   // Handle URL parameters for tab navigation
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -121,14 +61,14 @@ function ClientDashboard() {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
-  
+
   // Fetch user data and projects
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
     }
-    
+
     const fetchUserData = async () => {
       try {
         const userResponse = await apiRequest('/dashboards/user', { method: 'GET' });
@@ -142,7 +82,7 @@ function ClientDashboard() {
         console.error('Error fetching user data:', error);
       }
     };
-    
+
     const fetchProjects = async () => {
       try {
         const response = await apiRequest('/dashboards/projects', { method: 'GET' });
@@ -156,25 +96,25 @@ function ClientDashboard() {
         console.error('Error fetching projects:', error);
       }
     };
-    
+
     fetchUserData();
     fetchProjects();
-  }, [user]);
-  
+  }, [user, selectedProjectId]);
+
   // Track last selectedProjectId to determine if it's a new selection
   const lastProjectIdRef = useRef(null);
-  
+
   // Fetch tickets
   useEffect(() => {
     if (!user || !selectedProjectId) return;
-    
+
     const isNewProject = lastProjectIdRef.current !== selectedProjectId;
     if (isNewProject) {
       lastProjectIdRef.current = selectedProjectId;
     }
-    
+
     let interval = null;
-    
+
     const fetchTickets = async (showLoading = false) => {
       try {
         if (showLoading) {
@@ -182,7 +122,7 @@ function ClientDashboard() {
         }
         const project = projects.find(p => p.id === selectedProjectId);
         const projectName = project?.name;
-        
+
         if (!projectName) {
           setTickets([]);
           if (showLoading) {
@@ -190,25 +130,25 @@ function ClientDashboard() {
           }
           return;
         }
-        
+
         const response = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(projectName)}`, {
           method: 'GET',
         });
-        
+
         if (response.success && response.tickets) {
           const ticketsData = response.tickets.map(ticket => ({
             ...ticket,
             created: ticket.created?.toDate ? ticket.created.toDate() : (ticket.created ? new Date(ticket.created) : null),
             lastUpdated: ticket.lastUpdated?.toDate ? ticket.lastUpdated.toDate() : (ticket.lastUpdated ? new Date(ticket.lastUpdated) : null),
           }));
-          
+
           // Sort tickets by created date
           ticketsData.sort((a, b) => {
             const dateA = a.created || new Date(0);
             const dateB = b.created || new Date(0);
             return dateB - dateA;
           });
-          
+
           setTickets(ticketsData);
           setError(null);
         }
@@ -221,10 +161,10 @@ function ClientDashboard() {
         }
       }
     };
-    
+
     // Only show loading when project actually changes
     fetchTickets(isNewProject);
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -235,9 +175,9 @@ function ClientDashboard() {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     // Handle visibility changes
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -252,38 +192,21 @@ function ClientDashboard() {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, selectedProjectId, projects]);
- 
- 
-  // Enhanced scroll to bottom function
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
-      // Use requestAnimationFrame to ensure DOM is updated
-      requestAnimationFrame(() => {
-        container.scrollTop = container.scrollHeight;
-      });
-    }
-  };
- 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (selectedTicket) {
-      // Use setTimeout to ensure messages are rendered
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    }
-  }, [selectedTicket?.adminResponses, selectedTicket?.customerResponses, selectedTicket?.id]);
- 
- 
+
+
+  // Enhanced scroll to bottom function removed as it was unused
+
+
+
+
   const handleLogout = () => setShowLogoutModal(true);
   const handleLogoutConfirm = async () => {
     setSigningOut(true);
@@ -298,160 +221,20 @@ function ClientDashboard() {
     }
   };
   const handleLogoutCancel = () => setShowLogoutModal(false);
- 
-  const sendResponse = async (ticketId, message) => {
-    if (!message.trim()) return;
-   
-    setIsSending(true);
-    setError(null);
-   
-    try {
-      const response = await apiRequest(`/tickets/${ticketId}/comments`, {
-        method: 'POST',
-        body: JSON.stringify({
-          message: message.trim(),
-          sender: 'customer'
-        }),
-      });
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to send response');
-      }
-      
-      // Refresh ticket to get updated comments
-      const ticketResponse = await apiRequest(`/tickets/${ticketId}`, {
-        method: 'GET',
-      });
-      
-      if (ticketResponse.success && ticketResponse.ticket) {
-        setSelectedTicket(ticketResponse.ticket);
-        // Update tickets list
-        setTickets(prev => prev.map(t => 
-          t.id === ticketId ? ticketResponse.ticket : t
-        ));
-      }
-     
-      setNewResponse('');
-     
-      // Scroll to bottom after sending message
-      setTimeout(() => {
-        scrollToBottom();
-      }, 150);
-     
-    } catch (error) {
-      console.error('Error sending response:', error);
-      setError(error.message || 'Failed to send response. Please try again.');
-    } finally {
-      setIsSending(false);
-    }
-  };
- 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Open': return <AlertCircle className="w-4 h-4 text-blue-500" />;
-      case 'In Progress': return <Clock className="w-4 h-4 text-amber-500" />;
-      case 'Resolved': return <CheckCircle className="w-4 h-4 text-emerald-500" />;
-      case 'Closed': return <XCircle className="w-4 h-4 text-gray-500" />;
-      default: return null;
-    }
-  };
- 
-  const getStatusBadge = (status) => {
-    const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
-    switch (status) {
-      case 'Open':
-        return `${baseClasses} bg-blue-100 text-blue-800`;
-      case 'In Progress':
-        return `${baseClasses} bg-amber-100 text-amber-800`;
-      case 'Resolved':
-        return `${baseClasses} bg-emerald-100 text-emerald-800`;
-      case 'Closed':
-        return `${baseClasses} bg-gray-100 text-gray-800`;
-      default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
-    }
-  };
- 
-  const formatMessageTime = (timestamp) => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    const now = new Date();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
- 
-    const timeStr = date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
- 
-    if (date.toDateString() === now.toDateString()) {
-      return timeStr;
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return `Yesterday ${timeStr}`;
-    } else if (date.getFullYear() === now.getFullYear()) {
-      return `${date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-      })} ${timeStr}`;
-    } else {
-      return `${date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })} ${timeStr}`;
-    }
-  };
- 
-  // New function to format date and time for table display
-  const formatTableDateTime = (timestamp) => {
-    if (!timestamp) return '-';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
- 
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ticket.ticketNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRequester = requesterNameFilter === '' || ticket.customer.toLowerCase().includes(requesterNameFilter.toLowerCase());
-    const matchesTechnician = technicianFilter === '' || (ticket.adminResponses.length > 0 && ticket.adminResponses[0].message.toLowerCase().includes(technicianFilter.toLowerCase())); // This is a placeholder, will need proper technician field
-    const matchesDueDate = dueDateFilter === '' || (ticket.dueDate && new Date(ticket.dueDate).toDateString() === new Date(dueDateFilter).toDateString());
-    const matchesCreatedDate = createdDateFilter === '' || (ticket.created && new Date(ticket.created.toDate()).toDateString() === new Date(createdDateFilter).toDateString());
- 
-    if (filterStatus === 'All') {
-      return matchesSearch && matchesRequester && matchesTechnician && matchesDueDate && matchesCreatedDate;
-    }
-    return matchesSearch && matchesRequester && matchesTechnician && matchesDueDate && matchesCreatedDate && ticket.status === filterStatus;
-  });
- 
-  const handleSearch = () => {
-    setHasSearched(true);
-  };
- 
-  const clearFilters = () => {
-    setSearchTerm('');
-    setFilterStatus('All');
-    setRequesterNameFilter('');
-    setTechnicianFilter('');
-    setDueDateFilter('');
-    setCreatedDateFilter('');
-    setHasSearched(false);
-  };
- 
+
+  // _sendResponse removed
+
+
+  // Unused helpers removed
+
+
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, active: activeTab === 'dashboard' },
     { id: 'tickets', label: 'Tickets', icon: FileText, active: activeTab === 'tickets' },
     { id: 'create', label: 'Create Ticket', icon: Plus, active: activeTab === 'create' },
-    
+
   ];
- 
+
   const renderSidebarItem = (item) => {
     const IconComponent = item.icon;
     return (
@@ -463,11 +246,10 @@ function ClientDashboard() {
           setActiveTab(item.id);
           setSidebarOpen(false);
         }}
-        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${
-          item.active
-            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        }`}
+        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-xl transition-all duration-200 font-medium ${item.active
+          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
         title={sidebarCollapsed ? item.label : ''}
       >
         <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
@@ -477,15 +259,15 @@ function ClientDashboard() {
       </button>
     );
   };
- 
- 
+
+
   // Filter tickets for current user (assigned to or raised by)
   const currentUserEmail = user?.email;
   const myTickets = tickets.filter(t =>
     (t.assignedTo && t.assignedTo.email === currentUserEmail) ||
     t.email === currentUserEmail
   );
- 
+
   const handleFilterApply = () => {
     setAppliedFromDate(fromDate);
     setAppliedToDate(toDate);
@@ -499,14 +281,14 @@ function ClientDashboard() {
     setAppliedToDate('');
     setAppliedPeriod('custom');
   };
- 
+
   // Filter myTickets based on appliedFromDate, appliedToDate, appliedPeriod
   let filteredMyTickets = myTickets;
   if (appliedPeriod === 'week') {
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0,0,0,0);
+    startOfWeek.setHours(0, 0, 0, 0);
     filteredMyTickets = myTickets.filter(t => {
       const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
       return created && created >= startOfWeek && created <= now;
@@ -529,7 +311,7 @@ function ClientDashboard() {
   } else if (appliedFromDate && appliedToDate) {
     const from = new Date(appliedFromDate);
     const to = new Date(appliedToDate);
-    to.setHours(23,59,59,999);
+    to.setHours(23, 59, 59, 999);
     filteredMyTickets = myTickets.filter(t => {
       const created = t.created?.toDate ? t.created.toDate() : (t.created ? new Date(t.created) : null);
       return created && created >= from && created <= to;
@@ -537,52 +319,10 @@ function ClientDashboard() {
   }
   // Only show unresolved tickets (case-insensitive, trim whitespace)
   filteredMyTickets = filteredMyTickets.filter(t => String(t.status).trim().toLowerCase() !== 'resolved');
- 
-  function getField(ticket, ...keys) {
-    for (const key of keys) {
-      if (ticket[key]) return ticket[key];
-    }
-    return '';
-  }
-  function downloadTicketsAsExcel(tickets) {
-    if (!tickets || tickets.length === 0) return;
-    // Define the desired columns and their mapping
-    const columns = [
-      { header: 'Ticket ID', keys: ['ticketNumber', 'id'] },
-      { header: 'Subject', keys: ['subject'] },
-      { header: 'Module', keys: ['module', 'Module'] },
-      { header: 'Type of Issue', keys: ['typeOfIssue', 'type_of_issue', 'type', 'Type of Issue'] },
-      { header: 'Category', keys: ['category', 'Category'] },
-      { header: 'Sub-Category', keys: ['subCategory', 'sub_category', 'sub-category', 'Sub-Category'] },
-      { header: 'Status', keys: ['status', 'Status'] },
-      { header: 'Priority', keys: ['priority', 'Priority'] },
-      { header: 'Assigned To', keys: ['assignedTo', 'assigned_to', 'Assigned To'] },
-      { header: 'Created By', keys: ['customer', 'createdBy', 'Created By', 'email'] },
-      { header: 'Reported By', keys: ['reportedBy', 'Reported By'] },
-    ];
-    // Build rows
-    const rows = tickets.map(ticket =>
-      columns.map(col => {
-        if (col.header === 'Assigned To') {
-          const at = ticket.assignedTo;
-          if (typeof at === 'object' && at) return at.name || at.email || '';
-          return at || '';
-        }
-        if (col.header === 'Created By') {
-          return getField(ticket, ...col.keys);
-        }
-        return getField(ticket, ...col.keys);
-      })
-    );
-    // Add header
-    rows.unshift(columns.map(col => col.header));
-    // Create worksheet and workbook
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
-    XLSX.writeFile(wb, 'tickets_export.xlsx');
-  }
- 
+
+  // getField and downloadTicketsAsExcel removed (using utils)
+
+
   // Helper to safely format timestamps (copied from ClientTickets.jsx)
   function formatTimestamp(ts) {
     if (!ts) return '';
@@ -594,7 +334,7 @@ function ClientDashboard() {
     }
     return '';
   }
- 
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
@@ -615,7 +355,7 @@ function ClientDashboard() {
       </div>
     );
   }
- 
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
@@ -629,7 +369,7 @@ function ClientDashboard() {
       </div>
     );
   }
- 
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* LogoutModal always rendered above, not blurred */}
@@ -637,7 +377,7 @@ function ClientDashboard() {
       {/* Blurred content (sidebar + main) */}
       <div className={showLogoutModal ? 'flex flex-1 filter blur-sm pointer-events-none select-none' : 'flex flex-1'}>
         {/* Sidebar */}
-        <aside className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${ sidebarCollapsed ? 'w-20' : 'w-64' } bg-white shadow-xl lg:translate-x-0 lg:static ${ sidebarOpen ? 'translate-x-0' : '-translate-x-full' }`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'w-20' : 'w-64'} bg-white shadow-xl lg:translate-x-0 lg:static ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -662,12 +402,12 @@ function ClientDashboard() {
                 )}
               </button>
             </div>
- 
+
             {/* Sidebar Navigation */}
             <nav className="flex-1 p-6 space-y-2">
               {sidebarItems.map(renderSidebarItem)}
             </nav>
- 
+
             {/* Sidebar Footer */}
             <div className="p-6 border-t border-gray-200">
               {!sidebarCollapsed && (
@@ -709,7 +449,7 @@ function ClientDashboard() {
                 </div>
               </div>
               <div className="flex items-center space-x-4">
-                
+
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
@@ -720,13 +460,13 @@ function ClientDashboard() {
               </div>
             </div>
           </header>
- 
+
           {/* Dashboard Content */}
           <main className="flex-1 overflow-auto p-6 bg-gray-50">
             {activeTab === 'dashboard' && (
               <div className="space-y-8">
-               
-                
+
+
 
                 {/* Filtered Tickets Table */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mt-6">
@@ -782,12 +522,11 @@ function ClientDashboard() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                  ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-blue-100 text-blue-800' :
                                   ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                                  ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
+                                    ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
+                                  }`}>
                                   {ticket.status}
                                 </span>
                               </td>
@@ -804,7 +543,7 @@ function ClientDashboard() {
                   )}
                 </div>
 
-              
+
 
                 {/* Quick Actions */}
                 <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
@@ -845,15 +584,15 @@ function ClientDashboard() {
                 </div>
               </div>
             )}
- 
- {activeTab === 'tickets' && <ClientTickets setActiveTab={setActiveTab} />}
- 
+
+            {activeTab === 'tickets' && <ClientTickets setActiveTab={setActiveTab} />}
+
             {activeTab === 'create' && (
               <div className="max-w-auto mx-auto">
                 <Ticketing onTicketCreated={() => setActiveTab('tickets')} />
               </div>
             )}
- 
+
             {/* Conditional rendering for other tabs like notifications, settings */}
             {activeTab === 'notifications' && (
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
@@ -873,6 +612,5 @@ function ClientDashboard() {
     </div>
   );
 }
- 
+
 export default ClientDashboard;
- 

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { apiRequest } from '../../utils/api.js';
 import {
-  Plus, Trash2, Edit2, Save, XCircle, Layers, List,
-  Tag, Check, AlertCircle, Type, AlignLeft, Hash,
-  ChevronRight, GripVertical, Palette, Settings
+  Plus, Trash2, Edit2, Save, Layers, List,
+  Tag, Check, AlertCircle, Type, AlignLeft,
+  ChevronRight, Settings
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 

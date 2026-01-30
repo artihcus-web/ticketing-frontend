@@ -1,21 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  // Projector,
-  // Edit2,
-  // ChevronDown,
-  // ChevronUp,
-  // DownloadCloud,
-  Filter,
-  // Trash2,
-  // Search,
-  FolderKanban,
-  // AlertCircle,
-  // FolderOpen
-} from 'lucide-react';
 import { apiRequest } from '../../utils/api.js';
 import TicketDetails from './TicketDetails';
 import { BsTicketFill } from 'react-icons/bs';
- 
+
 function AdminTickets() {
   const [tickets, setTickets] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -30,18 +17,17 @@ function AdminTickets() {
   const [filtersApplied, setFiltersApplied] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({ status: '', priority: '', category: '', subject: '', description: '' });
-  const [selectedTicketIds, setSelectedTicketIds] = useState([]);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const statusDropdownRef = useRef(null);
   const priorityDropdownRef = useRef(null);
   const projectDropdownRef = useRef(null);
- 
+
   useEffect(() => {
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchTickets = async () => {
       try {
         if (isInitialLoad) {
@@ -63,9 +49,9 @@ function AdminTickets() {
         }
       }
     };
-    
+
     fetchTickets();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -76,9 +62,9 @@ function AdminTickets() {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -92,15 +78,15 @@ function AdminTickets() {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
- 
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -114,10 +100,10 @@ function AdminTickets() {
         console.error('Error fetching projects:', error);
       }
     };
-    
+
     fetchProjects();
   }, []);
- 
+
   // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -128,17 +114,17 @@ function AdminTickets() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
- 
+
   // Helper to summarize selected options
   const summarize = (arr, allLabel) => {
     if (arr.includes('All')) return allLabel;
     if (arr.length === 0) return allLabel;
     return arr.join(', ');
   };
- 
+
   const handleTicketClick = (ticketId) => setSelectedTicketId(ticketId);
   const handleBackToTickets = () => setSelectedTicketId(null);
- 
+
   const handleEditTicket = (ticket) => {
     setSelectedTicketId(ticket.id);
     setEditFormData({
@@ -150,18 +136,18 @@ function AdminTickets() {
     });
     setShowEditModal(true);
   };
- 
+
   const handleDeleteTicket = async (ticketId) => {
     if (window.confirm('Are you sure you want to delete this ticket?')) {
       try {
         const response = await apiRequest(`/admin/tickets/${ticketId}`, {
           method: 'DELETE',
         });
-        
+
         if (!response.success) {
           throw new Error(response.error || 'Failed to delete ticket');
         }
-        
+
         setTickets(tickets.filter(t => t.id !== ticketId));
       } catch (error) {
         console.error('Error deleting ticket:', error);
@@ -169,7 +155,7 @@ function AdminTickets() {
       }
     }
   };
- 
+
   const handleUpdateTicket = async (e) => {
     e.preventDefault();
     if (!selectedTicketId) return;
@@ -180,11 +166,11 @@ function AdminTickets() {
           ...editFormData,
         }),
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to update ticket');
       }
-      
+
       // Refresh tickets list
       const ticketsResponse = await apiRequest('/admin/tickets', {
         method: 'GET',
@@ -192,7 +178,7 @@ function AdminTickets() {
       if (ticketsResponse.success && ticketsResponse.tickets) {
         setTickets(ticketsResponse.tickets);
       }
-      
+
       setShowEditModal(false);
       setSelectedTicketId(null);
     } catch (error) {
@@ -200,7 +186,7 @@ function AdminTickets() {
       alert(error.message || 'Error updating ticket.');
     }
   };
- 
+
   const handleCheckboxFilter = (filter, setFilter, value) => {
     if (value === 'All') {
       setFilter(['All']);
@@ -217,7 +203,7 @@ function AdminTickets() {
       });
     }
   };
- 
+
   const filteredTickets = tickets.filter(ticket => {
     const matchesStatus = filterStatus.includes('All') || filterStatus.includes(ticket.status);
     const matchesPriority = filterPriority.includes('All') || filterPriority.includes(ticket.priority);
@@ -226,55 +212,16 @@ function AdminTickets() {
     const matchesSearch = ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) || ticket.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesPriority && matchesProject && matchesSearch;
   });
- 
-  const allSelected = activeTab === 'deleted' && filteredTickets.length > 0 && filteredTickets.every(t => selectedTicketIds.includes(t.id));
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedTicketIds(filteredTickets.map(t => t.id));
-    } else {
-      setSelectedTicketIds([]);
-    }
-  };
-  const handleSelectTicket = (ticketId, checked) => {
-    setSelectedTicketIds(prev => checked ? [...prev, ticketId] : prev.filter(id => id !== ticketId));
-  };
-  const handleBulkDelete = async () => {
-    if (window.confirm('Are you sure you want to delete all selected tickets?')) {
-      try {
-        const response = await apiRequest('/admin/tickets/bulk-delete', {
-          method: 'POST',
-          body: JSON.stringify({
-            ticketIds: selectedTicketIds,
-          }),
-        });
-        
-        if (!response.success) {
-          throw new Error(response.error || 'Failed to delete tickets');
-        }
-        
-        // Refresh tickets list
-        const ticketsResponse = await apiRequest('/admin/tickets', {
-          method: 'GET',
-        });
-        if (ticketsResponse.success && ticketsResponse.tickets) {
-          setTickets(ticketsResponse.tickets);
-        }
-        
-        setSelectedTicketIds([]);
-      } catch (error) {
-        console.error('Error bulk deleting tickets:', error);
-        alert(error.message || 'Error deleting tickets.');
-      }
-    }
-  };
- 
+
+
+
   // Ticket counts for cards
   const totalTickets = tickets.length;
   const openTickets = tickets.filter(t => t.status === 'Open').length;
   const inProgressTickets = tickets.filter(t => t.status === 'In Progress').length;
   const resolvedTickets = tickets.filter(t => t.status === 'Resolved').length;
   const closedTickets = tickets.filter(t => t.status === 'Closed').length;
- 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -285,7 +232,7 @@ function AdminTickets() {
       </div>
     );
   }
- 
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -296,18 +243,18 @@ function AdminTickets() {
       </div>
     );
   }
- 
+
   if (selectedTicketId && !showEditModal) {
-    return <TicketDetails ticketId={selectedTicketId} onBack={handleBackToTickets} onAssign={() => {}} />;
+    return <TicketDetails ticketId={selectedTicketId} onBack={handleBackToTickets} onAssign={() => { }} />;
   }
- 
+
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <BsTicketFill className="mr-3 text-orange-500" /> Tickets
-        </h1>
+          </h1>
           {/* Ticket Stats Cards */}
           <div className="flex gap-2">
             <div className="bg-white rounded-lg shadow border border-gray-100 px-3 py-2 flex flex-col items-center min-w-[70px]">
@@ -342,11 +289,10 @@ function AdminTickets() {
                 setFiltersApplied(false);
                 setFilterProject(['All']);
               }}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'live'
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'live'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               Live Tickets
             </button>
@@ -425,11 +371,10 @@ function AdminTickets() {
         </div>
         <button
           onClick={() => setFiltersApplied(true)}
-          className={`px-4 py-2 text-white rounded-lg transition-colors ${
-            activeTab === 'live'
-              ? 'bg-orange-600 hover:bg-orange-700'
-              : 'bg-red-600 hover:bg-red-700'
-          }`}
+          className={`px-4 py-2 text-white rounded-lg transition-colors ${activeTab === 'live'
+            ? 'bg-orange-600 hover:bg-orange-700'
+            : 'bg-red-600 hover:bg-red-700'
+            }`}
         >
           Go
         </button>
@@ -472,12 +417,11 @@ function AdminTickets() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        ticket.status === 'Open' ? 'bg-orange-100 text-orange-800' :
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-orange-100 text-orange-800' :
                         ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                        ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          ticket.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
                         {ticket.status}
                       </span>
                     </td>
@@ -507,7 +451,7 @@ function AdminTickets() {
         </div>
       ) : (
         <div className="text-center text-gray-500 py-12">
-          Set filters and click "Go" to view live tickets.
+          Set filters and click &quot;Go&quot; to view live tickets.
         </div>
       )}
       {showEditModal && (
@@ -589,13 +533,12 @@ function AdminTickets() {
     </div>
   );
 }
- 
+
 export default AdminTickets;
- 
+
 function formatTimestamp(ts) {
   if (!ts) return '';
   if (typeof ts === 'string') return new Date(ts).toLocaleString();
   if (typeof ts.toDate === 'function') return ts.toDate().toLocaleString();
   return '';
 }
- 

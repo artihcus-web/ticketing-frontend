@@ -5,25 +5,10 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import {
   ArrowLeft,
   User,
-  Tag,
-  Clock,
-  Hash,
-  Info,
-  Briefcase,
   Send,
-  CheckCircle,
-  Paperclip,
-  Link,
-  Menu,
-  LogOut,
-  Home,
-  FileText,
-  MessageSquare,
-  FolderOpen
-
+  Paperclip
 } from 'lucide-react';
 import { sendEmail } from '../../utils/sendEmail';
-import { fetchProjectMemberEmails } from '../../utils/emailUtils';
 import parse from 'html-react-parser';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -56,35 +41,7 @@ function formatTimestamp(ts) {
   return '';
 }
 
-// Helper to render Quill HTML with image preview overlays
-const renderQuillWithPreview = (html) => {
-  return parse(html, {
-    replace: domNode => {
-      if (domNode.name === 'img' && domNode.attribs && domNode.attribs.src) {
-        return (
-          <img
-            {...domNode.attribs}
-            style={{
-              maxWidth: 40,
-              maxHeight: 40,
-              width: 40,
-              height: 40,
-              objectFit: 'cover',
-              borderRadius: '0.5rem',
-              cursor: 'pointer',
-              display: 'inline-block',
-              verticalAlign: 'middle',
-              margin: '0 4px',
-              border: '2px solid #d1d5db'
-            }}
-            onClick={() => setPreviewImageSrc(domNode.attribs.src)}
-            alt={domNode.attribs.alt || 'image'}
-          />
-        );
-      }
-    }
-  });
-};
+
 
 // Add this helper function near the top of the file (outside the component):
 function makeImagesClickable(html) {
@@ -96,28 +53,13 @@ function makeImagesClickable(html) {
   );
 }
 
-// Helper to sanitize HTML and remove base64 images
 function stripBase64Images(html) {
   if (!html) return '';
-  // Remove <img src="data:image..."> tags (robust, covers single/double quotes, whitespace, and any attributes)
-  return html.replace(/<img[^>]*src=['"]data:image\/[a-zA-Z0-9+\/;=]+['"][^>]*>/gi, '');
+  // Remove <img src="data:image..."> tags
+  return html.replace(/<img[^>]*src=['"]data:image\/[a-zA-Z0-9+/;=]+['"][^>]*>/gi, '');
 }
 
-// Helper to check if a user is still a member of a project
-async function isUserStillProjectMember(email, projectId) {
-  try {
-    const response = await apiRequest(`/projects/${projectId}`, {
-      method: 'GET',
-    });
-    
-    if (!response.success || !response.project) return false;
-    const members = response.project.members || [];
-    return members.some(m => m.email === email);
-  } catch (error) {
-    console.error('Error checking project membership:', error);
-    return false;
-  }
-}
+
 
 const TicketDetails = ({ ticketId, onBack, onAssign }) => {
   const [ticket, setTicket] = useState(null);
@@ -126,13 +68,11 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
   const [newResponse, setNewResponse] = useState('');
   const [isSendingResponse, setIsSendingResponse] = useState(false);
   const [activeTab, setActiveTab] = useState('Commentbox');
-  const [currentUserName, setCurrentUserName] = useState('');
   const commentsEndRef = useRef(null);
   // Add state for editing fields
   const [editFields, setEditFields] = useState({ priority: '', status: '', category: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [resolutionText, setResolutionText] = useState('');
-  const [resolutionStatus, setResolutionStatus] = useState('');
   const [isSavingResolution, setIsSavingResolution] = useState(false);
   const [commentAttachments, setCommentAttachments] = useState([]);
   const [resolutionAttachments, setResolutionAttachments] = useState([]);
@@ -143,37 +83,25 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
   const [editingCommentIndex, setEditingCommentIndex] = useState(null);
   const [editingCommentValue, setEditingCommentValue] = useState('');
   const [isSavingCommentEdit, setIsSavingCommentEdit] = useState(false);
-  const [detailsError, setDetailsError] = useState('');
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [formConfig, setFormConfig] = useState(null);
-  const [previewImageSrc, setPreviewImageSrc] = useState('');
   const [editSubCategory, setEditSubCategory] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [editModule, setEditModule] = useState('');
-  const [selectedRequester, setSelectedRequester] = useState('');
   const [clientMembers, setClientMembers] = useState([]);
   const [editReportedBy, setEditReportedBy] = useState(ticket?.reportedBy || '');
   const [editTypeOfIssue, setEditTypeOfIssue] = useState('');
+  // Missing state variables for undefined errors
+  const [previewImageSrc, setPreviewImageSrc] = useState('');
+  const [, setDetailsError] = useState('');  // Used for error handling
+  const [, setResolutionStatus] = useState('');  // Used for status tracking
+  const [, setSelectedRequester] = useState('');  // Used at line 234
   // Add a ref for ReactQuill to access the editor
   const quillRef = useRef(null);
   const { user } = useAuth();
 
-  // Extract typeOfIssue options from formConfig.fields
-  const typeOfIssueField = formConfig?.fields?.find(f => f.id === 'typeOfIssue');
-  const typeOfIssueOptions = typeOfIssueField?.options || [];
 
-  // Dynamic moduleOptions from formConfig
-  const moduleOptions = formConfig?.moduleOptions
-    ? formConfig.moduleOptions.map(opt => typeof opt === 'object' ? opt : { value: opt, label: opt })
-    : [
-        { value: '', label: 'Select Module' },
-        { value: 'EWM', label: 'EWM' },
-        { value: 'BTP', label: 'BTP' },
-        { value: 'TM', label: 'TM' },
-        { value: 'Yl', label: 'Yl' },
-        { value: 'MFS', label: 'MFS' },
-      ];
 
   // Toast helper
   const showToast = (message, type = 'error') => {
@@ -188,10 +116,10 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       setLoading(false);
       return;
     }
-    
+
     let isInitialLoad = true;
     let interval = null;
-    
+
     const fetchTicket = async () => {
       try {
         if (isInitialLoad) {
@@ -200,7 +128,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         const response = await apiRequest(`/tickets/${ticketId}`, {
           method: 'GET',
         });
-        
+
         if (!response.success) {
           setError(response.error || 'Ticket not found.');
           if (isInitialLoad) {
@@ -208,7 +136,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           }
           return;
         }
-        
+
         setTicket(response.ticket);
       } catch (err) {
         console.error('Error fetching ticket:', err);
@@ -220,9 +148,9 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         }
       }
     };
-    
+
     fetchTicket();
-    
+
     // Poll for updates every 30 seconds, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
@@ -233,9 +161,9 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         }, 30000);
       }
     };
-    
+
     startPolling();
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         if (!interval) {
@@ -249,9 +177,9 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         }
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -292,14 +220,14 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         console.error('Error fetching employees:', err);
       }
     };
-    
+
     const fetchCurrentUserRole = () => {
       if (user) {
         setCurrentUserEmail(user.email);
         setCurrentUserRole(user.role);
       }
     };
-    
+
     if (ticket) {
       fetchEmployees();
       setSelectedAssignee(ticket.assignedTo?.email || '');
@@ -325,13 +253,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     fetchClients();
   }, [ticket]);
 
-  // Ticket number generation is now handled by the backend
-  // This function is kept for compatibility but will need backend support for typeOfIssue changes
-  const getNextTicketNumber = async (typeOfIssue) => {
-    // This will be handled by the backend when updating typeOfIssue
-    // For now, return a placeholder - backend should handle this in the update endpoint
-    return null;
-  };
+
 
   // Helper to convert files to base64
   const fileToBase64 = file => new Promise((resolve, reject) => {
@@ -429,7 +351,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         commentMsg.push(`Status changed to ${editFields.status}`);
         // If status is being set to Resolved, always add a resolution comment for KPI
         if (editFields.status === 'Resolved') {
-          let authorName = currentUserName;
+          let authorName = '';
           if (!authorName && user) {
             if (user.firstName || user.lastName) {
               authorName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -468,7 +390,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           };
           commentMsg.push(`Assigned to ${assignee.name || assignee.email || 'Unknown'}`);
           // Always add an assignment comment for KPI
-          let authorName = currentUserName;
+          let authorName = '';
           if (!authorName && user) {
             if (user.firstName || user.lastName) {
               authorName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -505,21 +427,21 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         updates.reportedBy = editReportedBy;
         commentMsg.push(`Reported by changed to ${editReportedBy}`);
       }
-      
+
       if (Object.keys(updates).length > 0) {
         // Update ticket via backend API
         const updateResponse = await apiRequest(`/tickets/${ticket.id}`, {
           method: 'PUT',
           body: JSON.stringify(updates),
         });
-        
+
         if (!updateResponse.success) {
           throw new Error(updateResponse.error || 'Failed to update ticket');
         }
-        
+
         // Add comment if there are changes to report
         if (commentMsg.length > 0) {
-          let authorName = currentUserName;
+          let authorName = '';
           if (!authorName && user) {
             if (user.firstName || user.lastName) {
               authorName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -537,7 +459,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
             }),
           });
         }
-        
+
         // Refresh ticket (always after any update)
         const ticketResponse = await apiRequest(`/tickets/${ticket.id}`, {
           method: 'GET',
@@ -547,11 +469,10 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           // Also update selectedAssignee to match new assignment
           setSelectedAssignee(ticketResponse.ticket.assignedTo?.email || '');
         }
-        
+
         // Send email to the other party (comment)
         let notifyEmail = null;
         const isClient = currentUserEmail === ticket.reportedBy || currentUserEmail === ticket.email;
-        const isEmployee = ticket.assignedTo && currentUserEmail === ticket.assignedTo.email;
         if (isClient) {
           notifyEmail = ticket.assignedTo?.email || null;
         } else {
@@ -596,7 +517,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     setIsSendingResponse(true);
     try {
       // Get user name
-      let authorName = currentUserName;
+      let authorName = '';
       if (!authorName && user) {
         if (user.firstName || user.lastName) {
           authorName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -608,7 +529,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       console.log('[DEBUG] handleAddResponse - commentAttachments at submit:', commentAttachments);
       // Strip base64 images before saving
       const cleanedMessage = stripBase64Images(newResponse);
-      
+
       // Add comment via backend API
       const response = await apiRequest(`/tickets/${ticketId}/comments`, {
         method: 'POST',
@@ -620,14 +541,14 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           authorRole: currentUserRole || user.role
         }),
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to add comment');
       }
-      
+
       setNewResponse('');
       setCommentAttachments([]);
-      
+
       // Refresh ticket
       const ticketResponse = await apiRequest(`/tickets/${ticketId}`, {
         method: 'GET',
@@ -638,7 +559,6 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       // Send email to the other party (comment)
       let notifyEmail = null;
       const isClient = currentUserEmail === ticket.reportedBy || currentUserEmail === ticket.email;
-      const isEmployee = ticket.assignedTo && currentUserEmail === ticket.assignedTo.email;
       if (isClient) {
         notifyEmail = ticket.assignedTo?.email || null;
       } else {
@@ -674,26 +594,13 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Open':
-        return 'bg-blue-100 text-blue-800';
-      case 'In Progress':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Resolved':
-        return 'bg-green-100 text-green-800';
-      case 'Closed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   const handleSaveResolution = async () => {
     if (!ticket) return;
     setIsSavingResolution(true);
     try {
-      let authorName = currentUserName;
+      let authorName = '';
       if (!authorName && user) {
         if (user.firstName || user.lastName) {
           authorName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -701,7 +608,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           authorName = user.email || '';
         }
       }
-      
+
       // Update ticket with resolution (keep current status, don't change it)
       const updateResponse = await apiRequest(`/tickets/${ticket.id}`, {
         method: 'PUT',
@@ -710,11 +617,11 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           resolutionAttachments: resolutionAttachments,
         }),
       });
-      
+
       if (!updateResponse.success) {
         throw new Error(updateResponse.error || 'Failed to save resolution');
       }
-      
+
       // Add resolution comment
       await apiRequest(`/tickets/${ticket.id}/comments`, {
         method: 'POST',
@@ -726,7 +633,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           authorRole: 'resolver',
         }),
       });
-      
+
       // Refresh ticket
       const ticketResponse = await apiRequest(`/tickets/${ticket.id}`, {
         method: 'GET',
@@ -734,12 +641,11 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       if (ticketResponse.success) {
         setTicket(ticketResponse.ticket);
       }
-      
+
       setResolutionAttachments([]);
       // Send email to the other party (resolution)
       let notifyEmail = null;
       const isClient = currentUserEmail === ticket.reportedBy || currentUserEmail === ticket.email;
-      const isEmployee = ticket.assignedTo && currentUserEmail === ticket.assignedTo.email;
       if (isClient) {
         notifyEmail = ticket.assignedTo?.email || null;
       } else {
@@ -802,7 +708,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     try {
       // Strip base64 images before saving
       const cleanedMessage = stripBase64Images(editingCommentValue);
-      
+
       // Update comment via backend API
       const response = await apiRequest(`/tickets/${ticket.id}/comments/${index}`, {
         method: 'PUT',
@@ -810,11 +716,11 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
           message: cleanedMessage
         }),
       });
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Failed to edit comment');
       }
-      
+
       // Refresh ticket
       const ticketResponse = await apiRequest(`/tickets/${ticket.id}`, {
         method: 'GET',
@@ -822,7 +728,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       if (ticketResponse.success) {
         setTicket(ticketResponse.ticket);
       }
-      
+
       setEditingCommentIndex(null);
       setEditingCommentValue('');
     } catch (err) {
@@ -830,6 +736,36 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     } finally {
       setIsSavingCommentEdit(false);
     }
+  };
+
+  // Helper to render Quill HTML with image preview overlays
+  const renderQuillWithPreview = (html) => {
+    return parse(html, {
+      replace: domNode => {
+        if (domNode.name === 'img' && domNode.attribs && domNode.attribs.src) {
+          return (
+            <img
+              {...domNode.attribs}
+              style={{
+                maxWidth: 40,
+                maxHeight: 40,
+                width: 40,
+                height: 40,
+                objectFit: 'cover',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                display: 'inline-block',
+                verticalAlign: 'middle',
+                margin: '0 4px',
+                border: '2px solid #d1d5db'
+              }}
+              onClick={() => setPreviewImageSrc(domNode.attribs.src)}
+              alt={domNode.attribs.alt || 'image'}
+            />
+          );
+        }
+      }
+    });
   };
 
   useEffect(() => {
@@ -841,7 +777,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         if (response.success && response.formConfig) {
           setFormConfig(response.formConfig);
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
     };
@@ -922,6 +858,14 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     };
   }, [quillRef]);
 
+  // Compute typeOfIssueOptions from formConfig
+  const typeOfIssueOptions = (() => {
+    if (!formConfig?.fields) return [];
+    const toiField = formConfig.fields.find(f => f.id === 'typeOfIssue' || f.label?.toLowerCase() === 'type of issue');
+    if (!toiField?.options) return [];
+    return toiField.options.map(opt => (typeof opt === 'object' ? { value: opt.value, label: opt.value } : { value: opt, label: opt }));
+  })();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -1000,12 +944,12 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         {/* Tabs */}
         <div className="border-b mb-8 px-2">
           <nav className="flex flex-wrap gap-2">
-            {['Details','Commentbox','Resolution'].map(tab => (
+            {['Details', 'Commentbox', 'Resolution'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-5 py-2 text-sm font-semibold rounded-t-lg border-b-2 transition-all duration-150 focus:outline-none ${activeTab === tab ? 'border-blue-600 text-blue-700 bg-white shadow-sm' : 'border-transparent text-gray-500 hover:text-blue-600 hover:bg-blue-50'}`}
-                style={{marginBottom: activeTab === tab ? '-2px' : 0}}
+                style={{ marginBottom: activeTab === tab ? '-2px' : 0 }}
               >
                 {tab}
               </button>
@@ -1028,16 +972,16 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                         console.log('[DEBUG] Comment attachments:', comment.attachments);
                       }
                       return (
-                      <div key={index} className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700 text-lg shadow-sm">
-                          {comment.authorName ? comment.authorName.charAt(0).toUpperCase() : (comment.authorEmail ? comment.authorEmail.charAt(0).toUpperCase() : '?')}
-                        </div>
-                        <div className="flex-1">
-                          <div className="bg-white border border-blue-100 rounded-xl p-4 shadow-sm">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-semibold text-blue-700">{comment.authorName || comment.authorEmail}</span>
-                              <span className="text-xs text-gray-400">{formatTimestamp(comment.timestamp)}</span>
-                            </div>
+                        <div key={index} className="flex items-start gap-4">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-bold text-blue-700 text-lg shadow-sm">
+                            {comment.authorName ? comment.authorName.charAt(0).toUpperCase() : (comment.authorEmail ? comment.authorEmail.charAt(0).toUpperCase() : '?')}
+                          </div>
+                          <div className="flex-1">
+                            <div className="bg-white border border-blue-100 rounded-xl p-4 shadow-sm">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-semibold text-blue-700">{comment.authorName || comment.authorEmail}</span>
+                                <span className="text-xs text-gray-400">{formatTimestamp(comment.timestamp)}</span>
+                              </div>
                               {isEditing ? (
                                 <>
                                   <textarea
@@ -1065,48 +1009,48 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                                 </>
                               ) : (
                                 <>
-                            <div className="text-gray-900 whitespace-pre-wrap leading-relaxed">{
-                              parse(stripBase64Images(comment.message))
-                            }</div>
-                            {/* Show image and other attachments as thumbnails or links below the comment */}
-                            {comment.attachments && comment.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {comment.attachments.map((file, idx) => {
-                                  if (file.type && file.type.startsWith('image/')) {
-                                    return (
-                                      <img
-                                        key={idx}
-                                        src={file.data}
-                                        alt={file.name || 'attachment'}
-                                        className="w-16 h-16 object-cover rounded cursor-pointer border border-gray-200"
-                                        style={{ maxWidth: '4rem', maxHeight: '4rem', width: '4rem', height: '4rem' }}
-                                        onClick={() => setPreviewImageSrc(file.data)}
-                                        onError={e => {
-                                          e.target.onerror = null;
-                                          e.target.style.display = 'none';
-                                          const fallback = document.createElement('div');
-                                          fallback.innerText = 'Image failed to load';
-                                          fallback.style.color = 'red';
-                                          e.target.parentNode.appendChild(fallback);
-                                        }}
-                                      />
-                                    );
-                                  } else {
-                                    return (
-                                      <a
-                                        key={idx}
-                                        href={file.data}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 underline text-xs block"
-                                      >
-                                        {file.name || 'Download attachment'}
-                                      </a>
-                                    );
-                                  }
-                                })}
-                              </div>
-                            )}
+                                  <div className="text-gray-900 whitespace-pre-wrap leading-relaxed">{
+                                    parse(stripBase64Images(comment.message))
+                                  }</div>
+                                  {/* Show image and other attachments as thumbnails or links below the comment */}
+                                  {comment.attachments && comment.attachments.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                      {comment.attachments.map((file, idx) => {
+                                        if (file.type && file.type.startsWith('image/')) {
+                                          return (
+                                            <img
+                                              key={idx}
+                                              src={file.data}
+                                              alt={file.name || 'attachment'}
+                                              className="w-16 h-16 object-cover rounded cursor-pointer border border-gray-200"
+                                              style={{ maxWidth: '4rem', maxHeight: '4rem', width: '4rem', height: '4rem' }}
+                                              onClick={() => setPreviewImageSrc(file.data)}
+                                              onError={e => {
+                                                e.target.onerror = null;
+                                                e.target.style.display = 'none';
+                                                const fallback = document.createElement('div');
+                                                fallback.innerText = 'Image failed to load';
+                                                fallback.style.color = 'red';
+                                                e.target.parentNode.appendChild(fallback);
+                                              }}
+                                            />
+                                          );
+                                        } else {
+                                          return (
+                                            <a
+                                              key={idx}
+                                              href={file.data}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 underline text-xs block"
+                                            >
+                                              {file.name || 'Download attachment'}
+                                            </a>
+                                          );
+                                        }
+                                      })}
+                                    </div>
+                                  )}
                                   {comment.lastEditedAt && comment.lastEditedBy && (
                                     <div className="mt-1 text-xs text-gray-500 italic">Last edited by {comment.lastEditedBy} at {formatTimestamp(comment.lastEditedAt)}</div>
                                   )}
@@ -1117,10 +1061,10 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                                     Edit
                                   </button>
                                 </>
-                                    )}
-                                  </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
                       );
                     })
                   ) : (
@@ -1141,7 +1085,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                       toolbar: [
                         [{ 'header': [1, 2, false] }],
                         ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                         ['link', 'image'],
                         ['clean']
                       ]
@@ -1392,7 +1336,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                   </div>
                   <div>
                     <span className="font-semibold text-gray-700">Created By:</span>
-                      <span className="ml-2">{ticket.customer} ({ticket.email})</span>
+                    <span className="ml-2">{ticket.customer} ({ticket.email})</span>
                   </div>
                   <div className="mb-4">
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Reported by</label>
@@ -1456,7 +1400,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                   toolbar: [
                     [{ 'header': [1, 2, false] }],
                     ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                     ['link', 'image'],
                     ['clean']
                   ]
@@ -1520,8 +1464,8 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
               )}
             </div>
           )}
- 
-         
+
+
         </div>
       </div>
       {/* Sidebar */}
@@ -1539,11 +1483,10 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
             <div>
               <p className="text-sm text-gray-600">Priority</p>
               <div className="flex items-center space-x-2">
-                <span className={`inline-block w-2 h-2 rounded-full ${
-                  ticket.priority === 'High' ? 'bg-red-500' :
+                <span className={`inline-block w-2 h-2 rounded-full ${ticket.priority === 'High' ? 'bg-red-500' :
                   ticket.priority === 'Medium' ? 'bg-yellow-500' :
-                  'bg-blue-500'
-                }`}></span>
+                    'bg-blue-500'
+                  }`}></span>
                 <p className="text-sm font-medium text-gray-900">{ticket.priority || 'Low'}</p>
               </div>
             </div>
