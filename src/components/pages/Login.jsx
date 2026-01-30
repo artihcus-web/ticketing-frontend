@@ -34,14 +34,17 @@ const Login = () => {
       let data;
       let externalSuccess = false;
 
-      // 1. Try external authentication via local proxy (to avoid CORS)
+      // 1. Try external authentication directly
       try {
         const payload = {
           username: identifier,
           password: password
         };
 
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002'}/auth/external-login`, {
+        const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
+        const loginUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/auth/login`;
+
+        const response = await fetch(loginUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
