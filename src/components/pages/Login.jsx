@@ -31,106 +31,76 @@ const Login = () => {
     }
 
     try {
-      let data;
-      let externalSuccess = false;
+      // Use OUR backend login (which bridges to external API)
+      const apiURL = import.meta.env.VITE_API_URL || 'https://api.ticket.artihcus.com';
+      const loginUrl = `${apiURL.replace(/\/+$/, '')}/api/auth/login`;
 
-      // 1. Try external authentication directly
-      try {
-        const payload = {
-          username: identifier,
-          password: password
+      const response = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Map the user data from our backend
+        const userData = {
+          id: data.user.id || data.user._id,
+          email: data.user.email,
+          role: data.user.role,
+          empId: data.user.empId || data.user.userName,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName,
+          fullName: data.user.fullName || `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim()
         };
 
-        const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
-        const loginUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/auth/login`;
+        // Login using AuthContext (stores token and user data)
+        login(data.token, userData);
 
-        const response = await fetch(loginUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
+        // Redirect based on role or redirect param
+        const params = new URLSearchParams(location.search);
+        const redirect = params.get('redirect');
+        if (redirect) {
+          navigate(redirect, { replace: true });
+          return;
+        }
 
-        if (response.ok) {
-          const externalData = await response.json();
-          // The external API returns { message: "Login successful", token: "...", user: { ... } }
-          if (externalData.token && externalData.user) {
-            // Map external user structure to local expectation
-            const fullName = externalData.user.fullName || '';
-            const nameParts = fullName.split(' ');
-
-            data = {
-              token: externalData.token,
-              user: {
-                id: externalData.user.id,
-                email: externalData.user.email,
-                role: externalData.user.role,
-                empId: externalData.user.username, // username is the employee ID in the external system
-                firstName: nameParts[0] || '',
-                lastName: nameParts.slice(1).join(' ') || '',
-                fullName: fullName
-              }
-            };
-            externalSuccess = true;
+        // Determine default redirect path
+        let redirectPath = data.redirectPath;
+        if (!redirectPath) {
+          const role = userData.role?.toLowerCase();
+          switch (role) {
+            case 'admin':
+              redirectPath = '/admin';
+              break;
+            case 'employee':
+              redirectPath = '/employeedashboard';
+              break;
+            case 'client':
+              redirectPath = '/clientdashboard';
+              break;
+            case 'project_manager':
+              redirectPath = '/project-manager-dashboard';
+              break;
+            case 'client_head':
+              redirectPath = '/client-head-dashboard';
+              break;
+            default:
+              redirectPath = '/access-denied';
           }
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("External login error:", response.status, errorData);
         }
-      } catch (externalErr) {
-        console.error("External login connection failed:", externalErr.message);
-      }
-
-      // 2. Local API fallback removed
-      if (!externalSuccess) {
-        setError("Invalid email or password");
+        navigate(redirectPath, { replace: true });
+      } else {
+        setError(data.error || "Invalid email or password");
         setIsLoading(false);
-        return;
       }
-
-      // Login using AuthContext (stores token and user data)
-      login(data.token, data.user);
-
-      // Redirect based on role or redirect param
-      const params = new URLSearchParams(location.search);
-      const redirect = params.get('redirect');
-      if (redirect) {
-        navigate(redirect, { replace: true });
-        return;
-      }
-
-      // Determine default redirect path if not provided
-      let redirectPath = data.redirectPath;
-      if (!redirectPath) {
-        const role = data.user?.role?.toLowerCase();
-        switch (role) {
-          case 'admin':
-            redirectPath = '/admin';
-            break;
-          case 'employee':
-            redirectPath = '/employeedashboard';
-            break;
-          case 'client':
-            redirectPath = '/clientdashboard';
-            break;
-          case 'project_manager':
-            redirectPath = '/project-manager-dashboard';
-            break;
-          case 'client_head':
-            redirectPath = '/client-head-dashboard';
-            break;
-          default:
-            redirectPath = '/access-denied';
-        }
-      }
-
-      navigate(redirectPath, { replace: true });
-
     } catch (err) {
       console.error("Login process error:", err);
       setIsLoading(false);
-      setError(err.message || "An unexpected error occurred. Please try again.");
+      setError("Authentication service unavailable. Please try again later.");
     }
   };
 

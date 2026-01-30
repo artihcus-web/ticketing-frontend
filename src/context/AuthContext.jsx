@@ -44,39 +44,37 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Verify token with external API directly (CORS should be handled on external app)
-      const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
-      const verifyUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/auth/me`;
+      // Verify token with OUR backend (which bridges to external API)
+      const apiURL = import.meta.env.VITE_API_URL || 'https://api.ticket.artihcus.com';
+      const verifyUrl = `${apiURL.replace(/\/+$/, '')}/api/auth/verify`;
 
       const response = await fetch(verifyUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         }
       });
 
       if (response.ok) {
         const data = await response.json();
-        // The external API verify endpoint likely returns a similar user object structure
         if (data.user) {
-          const fullName = data.user.fullName || '';
-          const nameParts = fullName.split(' ');
-
+          // Use the user data returned by our backend
           const mappedUser = {
             id: data.user.id || data.user._id,
             email: data.user.email,
             role: data.user.role,
-            empId: data.user.username,
-            firstName: nameParts[0] || '',
-            lastName: nameParts.slice(1).join(' ') || '',
-            fullName: fullName
+            empId: data.user.empId || data.user.userName,
+            firstName: data.user.firstName,
+            lastName: data.user.lastName,
+            fullName: data.user.fullName || `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim()
           };
 
           setUser(mappedUser);
           setIsAuthenticated(true);
 
           localStorage.setItem('userInfo', JSON.stringify({
-            name: fullName.trim() || data.user.email,
+            name: mappedUser.fullName || data.user.email,
             empId: mappedUser.empId,
             clientId: data.user.clientId,
             role: data.user.role,
@@ -88,12 +86,11 @@ export const AuthProvider = ({ children }) => {
           logout();
         }
       } else {
-        // No fallback to local verify if external fails
-        console.error('External auth verification failed');
+        console.error('Core auth verification failed via backend');
         logout();
       }
     } catch (error) {
-      console.error('Auth check error:', error);
+      console.error('Auth verification crash:', error);
       logout();
     } finally {
       setLoading(false);
