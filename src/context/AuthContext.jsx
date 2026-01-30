@@ -44,11 +44,8 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
-      const verifyUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/auth/me`;
-
-      // Verify token with external API only
-      const response = await fetch(verifyUrl, {
+      // Verify token with local proxy (to avoid CORS in production)
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002'}/auth/external-verify`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`

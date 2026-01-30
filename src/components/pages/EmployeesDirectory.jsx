@@ -26,9 +26,12 @@ const EmployeesDirectory = () => {
 
         setError(null);
         try {
-            const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
-            const apiUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/employees`;
-            const response = await fetch(apiUrl);
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002'}/team/external-employees`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch employees: ${response.status} ${response.statusText}`);

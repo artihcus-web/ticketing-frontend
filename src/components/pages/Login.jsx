@@ -31,20 +31,17 @@ const Login = () => {
     }
 
     try {
-      const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
-      const loginUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/auth/login`;
-
       let data;
       let externalSuccess = false;
 
-      // 1. Try external authentication
+      // 1. Try external authentication via local proxy (to avoid CORS)
       try {
         const payload = {
           username: identifier,
           password: password
         };
 
-        const response = await fetch(loginUrl, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002'}/auth/external-login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
