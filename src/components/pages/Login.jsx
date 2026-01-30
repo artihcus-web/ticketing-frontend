@@ -82,27 +82,11 @@ const Login = () => {
         console.error("External login connection failed:", externalErr.message);
       }
 
-      // 2. Fallback to local API if external fails (for Admins)
+      // 2. Local API fallback removed
       if (!externalSuccess) {
-        try {
-          const localResponse = await apiRequest('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({ identifier, password }),
-          });
-
-          if (localResponse.success) {
-            data = localResponse;
-          } else {
-            setError(localResponse.error || "Invalid email or password");
-            setIsLoading(false);
-            return;
-          }
-        } catch (localErr) {
-          console.error("Local login failed:", localErr.message);
-          setError(localErr.message || "Invalid email or password");
-          setIsLoading(false);
-          return;
-        }
+        setError("Invalid email or password");
+        setIsLoading(false);
+        return;
       }
 
       // Login using AuthContext (stores token and user data)

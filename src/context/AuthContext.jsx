@@ -88,25 +88,9 @@ export const AuthProvider = ({ children }) => {
           logout();
         }
       } else {
-        // Fallback to local verify if external fails
-        try {
-          const localResponse = await apiRequest('/auth/verify', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (localResponse.success) {
-            setUser(localResponse.user);
-            setIsAuthenticated(true);
-          } else {
-            logout();
-          }
-        } catch (localError) {
-          console.error('Local auth check error:', localError.message);
-          logout();
-        }
+        // No fallback to local verify if external fails
+        console.error('External auth verification failed');
+        logout();
       }
     } catch (error) {
       console.error('Auth check error:', error);
