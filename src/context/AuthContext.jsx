@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Verify token with OUR backend (which bridges to external API)
-      const apiURL = import.meta.env.VITE_API_URL || 'https://api.ticket.artihcus.com';
+      const apiURL = import.meta.env.VITE_API_BASE_URL || '';
       const verifyUrl = `${apiURL.replace(/\/+$/, '')}/api/auth/verify`;
 
       const response = await fetch(verifyUrl, {
