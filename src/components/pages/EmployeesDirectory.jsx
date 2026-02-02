@@ -26,7 +26,7 @@ const EmployeesDirectory = () => {
 
         setError(null);
         try {
-            const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://api.artihcus.com:8443/';
+            const apiBase = import.meta.env.VITE_EMPLOYEES_API_URL || 'https://ticketing.artihcus.com:8443/';
             const apiUrl = `${apiBase.endsWith('/') ? apiBase : apiBase + '/'}api/employees`;
             const response = await fetch(apiUrl);
 
@@ -35,8 +35,10 @@ const EmployeesDirectory = () => {
             }
 
             const data = await response.json();
-            // Ensure data is an array
-            setEmployees(Array.isArray(data) ? data : (data.employees || []));
+            // Handle both {employees: [...]} and direct [...] formats
+            const employeesList = Array.isArray(data) ? data : (data.employees || data.members || []);
+            setEmployees(employeesList);
+
         } catch (err) {
             console.error('Error fetching employees:', err);
             setError(err.message || 'Failed to connect to the employees API. Please verify the API endpoint.');
@@ -44,6 +46,7 @@ const EmployeesDirectory = () => {
             setLoading(false);
             setIsRefreshing(false);
         }
+
     };
 
     useEffect(() => {
