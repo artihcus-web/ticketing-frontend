@@ -399,6 +399,7 @@ function AdminTickets() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ticket ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Raised By</th>
@@ -416,6 +417,9 @@ function AdminTickets() {
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ticket.ticketNumber}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ticket.subject}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {projects.find(p => p.id === ticket.projectId)?.name || ticket.project || ticket.projectId || '-'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ticket.status === 'Open' ? 'bg-orange-100 text-orange-800' :
                         ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :

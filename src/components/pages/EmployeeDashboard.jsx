@@ -96,9 +96,15 @@ function EmployeeDashboard() {
         const response = await apiRequest('/dashboards/projects', { method: 'GET' });
         if (response.success && response.projects) {
           setProjects(response.projects);
-          // Always select the first project the employee is in
           if (response.projects.length > 0) {
-            setSelectedProjectId(response.projects[0].id);
+            setSelectedProjectId(prev => {
+              // If we have a selection and it's still valid, keep it
+              if (prev && response.projects.some(p => p.id === prev)) {
+                return prev;
+              }
+              // Otherwise, default to the first one
+              return response.projects[0].id;
+            });
           } else {
             setSelectedProjectId('');
           }
@@ -354,17 +360,20 @@ function EmployeeDashboard() {
       try {
         const response = await apiRequest('/dashboards/user', { method: 'GET' });
         if (response.success && response.user) {
-          const role = response.user.role;
-          if (role === 'client') {
+          const role = response.user.role ? response.user.role.toLowerCase() : '';
+
+          if (role === 'client' || role === 'client_head') {
+            const target = role === 'client' ? '/clientdashboard' : '/client-head-dashboard';
             setRoleChangeToast({ show: true, message: 'Your role has changed. Redirecting...' });
-            setTimeout(() => navigate('/clientdashboard'), 2000);
+            setTimeout(() => navigate(target), 2000);
           } else if (role === 'admin') {
             setRoleChangeToast({ show: true, message: 'Your role has changed. Redirecting...' });
             setTimeout(() => navigate('/admin'), 2000);
-          } else if (role === 'project_manager') {
+          } else if (role === 'project_manager' || role === 'manager' || role === 'project manager') {
             setRoleChangeToast({ show: true, message: 'Your role has changed. Redirecting...' });
-            setTimeout(() => navigate('/projectmanagerdashboard'), 2000);
-          } else if (role !== 'employee') {
+            setTimeout(() => navigate('/project-manager-dashboard'), 2000);
+          } else if (role && role !== 'employee') {
+            // Only log out if we have a valid role but it definitely doesn't match employee
             setRoleChangeToast({ show: true, message: 'Your access has been removed. Signing out...' });
             setTimeout(() => { logout(); navigate('/login'); }, 2000);
           }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { apiRequest } from '../../utils/api.js';
 import {
   Plus, Trash2, Edit2, Save, Layers, List,
@@ -21,7 +22,7 @@ const toObjArr = (arr) => (arr || []).map(val =>
 const toStrArr = arr => (arr || []).map(obj => obj.value);
 const toDropdownArr = arr => (arr || []).map(obj => ({ value: obj.value, color: obj.color }));
 
-export default function EditTicketForm() {
+export default function EditTicketForm({ projectName: propProjectName }) {
   const [fields, setFields] = useState(defaultFields.filter(f => f.id !== 'priority'));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,7 +54,8 @@ export default function EditTicketForm() {
     const fetchConfig = async () => {
       setLoading(true);
       try {
-        const response = await apiRequest('/tickets/config/formConfig', {
+        const projectName = propProjectName || 'General';
+        const response = await apiRequest(`/tickets/config/formConfig?projectName=${encodeURIComponent(projectName)}`, {
           method: 'GET',
         });
 
@@ -88,7 +90,7 @@ export default function EditTicketForm() {
 
           await apiRequest('/tickets/config/formConfig', {
             method: 'PUT',
-            body: JSON.stringify(defaultConfig),
+            body: JSON.stringify({ ...defaultConfig, projectName }),
           });
 
           setModuleOptions(toObjArr(['EWM', 'BTP', 'TM']));
@@ -103,7 +105,7 @@ export default function EditTicketForm() {
       }
     };
     fetchConfig();
-  }, []);
+  }, [propProjectName]);
 
   // Field Handlers
   const addField = () => {
@@ -248,7 +250,8 @@ export default function EditTicketForm() {
           fields: saveFields.filter(f => !['module', 'category', 'subCategory'].includes(f.id)),
           moduleOptions: modStr,
           categoryOptions: catStr,
-          subCategoryOptions: subStr
+          subCategoryOptions: subStr,
+          projectName: propProjectName || 'General'
         }),
       });
 
@@ -289,10 +292,12 @@ export default function EditTicketForm() {
               <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-lg shadow-indigo-500/30">
                 <Settings className="w-6 h-6" />
               </div>
-              Ticket Configuration
+              Ticket Configuration {propProjectName && propProjectName !== 'General' ? `- ${propProjectName}` : ''}
             </h1>
             <p className="text-slate-500 mt-2 text-lg">
-              Customize your ticket form fields and system categorization.
+              {propProjectName && propProjectName !== 'General'
+                ? `Customize the ticket form specifically for ${propProjectName}.`
+                : 'Customize the global ticket form fields and system categorization.'}
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -650,3 +655,7 @@ export default function EditTicketForm() {
     </div>
   );
 }
+
+EditTicketForm.propTypes = {
+  projectName: PropTypes.string
+};

@@ -8,7 +8,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
  * @returns {Promise<Response>}
  */
 export const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const prefix = endpoint.startsWith('/api') ? '' : '/api';
+  const url = `${API_BASE_URL}${prefix}${endpoint}`;
   const token = localStorage.getItem('token');
 
   const defaultOptions = {

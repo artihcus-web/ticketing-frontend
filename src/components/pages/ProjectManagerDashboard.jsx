@@ -20,7 +20,8 @@ import {
   AlertCircle,
   Clock,
   CheckCircle,
-  Briefcase
+  Briefcase,
+  Settings
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -31,6 +32,7 @@ import ProjectTickets from './ProjectManagerTickets';
 import TeamManagement from './TeamManagement';
 import Ticketing from './Ticketing';
 import TicketDetails from './TicketDetails';
+import EditTicketForm from './EditTicketForm';
 import PropTypes from 'prop-types';
 import {
   computeKPIsForTickets,
@@ -314,17 +316,20 @@ const ProjectManagerDashboard = () => {
       try {
         const response = await apiRequest('/dashboards/user', { method: 'GET' });
         if (response.success && response.user) {
-          const role = response.user.role;
+          const role = response.user.role ? response.user.role.toLowerCase() : '';
+
           if (role === 'employee') {
             setRoleChangeToast({ show: true, message: 'Your role has changed. Redirecting...' });
             setTimeout(() => navigate('/employeedashboard'), 2000);
           } else if (role === 'admin') {
             setRoleChangeToast({ show: true, message: 'Your role has changed. Redirecting...' });
             setTimeout(() => navigate('/admin'), 2000);
-          } else if (role === 'client') {
+          } else if (role === 'client' || role === 'client_head') {
+            const target = role === 'client' ? '/clientdashboard' : '/client-head-dashboard';
             setRoleChangeToast({ show: true, message: 'Your role has changed. Redirecting...' });
-            setTimeout(() => navigate('/clientdashboard'), 2000);
-          } else if (role !== 'project_manager') {
+            setTimeout(() => navigate(target), 2000);
+          } else if (role && role !== 'project_manager' && role !== 'manager' && role !== 'project manager') {
+            // Only log out if we have a valid role but it definitely doesn't match PM/Manager
             setRoleChangeToast({ show: true, message: 'Your access has been removed. Signing out...' });
             setTimeout(() => { logout(); navigate('/login'); }, 2000);
           }
@@ -349,11 +354,17 @@ const ProjectManagerDashboard = () => {
     }
   };
 
+  const currentProject = projects.find(p => p.id === selectedProjectId);
+  const currentProjectRole = currentProject?.projectRole || 'employee';
+
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, active: activeTab === 'dashboard' },
     { id: 'tickets', label: 'Tickets', icon: MessageSquare, active: activeTab === 'tickets' },
-    { id: 'team', label: 'Team', icon: Users, active: activeTab === 'team' },
-    { id: 'kpi', label: 'KPI Reports', icon: BarChart3, active: activeTab === 'kpi' },
+    ...(currentProjectRole === 'project_manager' ? [
+      { id: 'team', label: 'Team', icon: Users, active: activeTab === 'team' },
+      { id: 'kpi', label: 'KPI Reports', icon: BarChart3, active: activeTab === 'kpi' },
+      { id: 'edit-form', label: 'Edit Form', icon: Settings, active: activeTab === 'edit-form' }
+    ] : []),
     { id: 'create', label: 'Create Ticket', icon: Plus, active: activeTab === 'create' }
   ];
 
@@ -397,6 +408,14 @@ const ProjectManagerDashboard = () => {
     setSelectedProjectId(projectId);
     setShowSwitchProjectModal(false);
   };
+
+  // Switch back to dashboard if current tab is no longer available for the new project role
+  useEffect(() => {
+    const isPMTab = ['team', 'kpi', 'edit-form'].includes(activeTab);
+    if (isPMTab && currentProjectRole !== 'project_manager') {
+      setActiveTab('dashboard');
+    }
+  }, [selectedProjectId, currentProjectRole, activeTab]);
 
   // myTickets calculation removed as it was unused
 
@@ -1202,6 +1221,12 @@ const ProjectManagerDashboard = () => {
                   selectedProjectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
                 />
               </div>
+            )}
+
+            {activeTab === 'edit-form' && (
+              <EditTicketForm
+                projectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
+              />
             )}
 
             {activeTab === 'kpi' && (

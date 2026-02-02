@@ -14,9 +14,14 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const savedInfo = localStorage.getItem('userInfo');
+    return savedInfo ? JSON.parse(savedInfo) : null;
+  });
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('token');
+  });
 
   // Check authentication on mount
   useEffect(() => {
@@ -60,10 +65,11 @@ export const AuthProvider = ({ children }) => {
         const data = await response.json();
         if (data.user) {
           // Use the user data returned by our backend
+          const normalizedRole = data.user.role?.toLowerCase().trim().replace(/\s+/g, '_');
           const mappedUser = {
             id: data.user.id || data.user._id,
             email: data.user.email,
-            role: data.user.role,
+            role: normalizedRole,
             empId: data.user.empId || data.user.userName,
             firstName: data.user.firstName,
             lastName: data.user.lastName,
@@ -77,39 +83,47 @@ export const AuthProvider = ({ children }) => {
             name: mappedUser.fullName || data.user.email,
             empId: mappedUser.empId,
             clientId: data.user.clientId,
-            role: data.user.role,
+            role: normalizedRole,
             project: data.user.project || null
           }));
-          localStorage.setItem('userRole', data.user.role);
+          localStorage.setItem('userRole', normalizedRole);
           localStorage.setItem('userId', mappedUser.id);
         } else {
+          // No user data but OK response? Unusual.
           logout();
         }
-      } else {
-        console.error('Core auth verification failed via backend');
+      } else if (response.status === 401 || response.status === 403) {
+        console.error(`Auth verification failed: ${response.status}`);
         logout();
+      } else {
+        console.warn(`Auth verification backend error: ${response.status}. Keeping local state.`);
+        // Don't call logout() for 500s/503s - the user might still have a valid session
+        // and we don't want to kick them out because of a temporary server glitch.
       }
     } catch (error) {
-      console.error('Auth verification crash:', error);
-      logout();
+      console.error('Auth verification network crash:', error);
+      // Don't call logout() for network errors on refresh
     } finally {
       setLoading(false);
     }
   };
 
   const login = (token, userData) => {
+    const normalizedRole = userData.role?.toLowerCase().trim().replace(/\s+/g, '_');
+    const normalizedUserData = { ...userData, role: normalizedRole };
+
     localStorage.setItem('token', token);
     localStorage.setItem('isLoggedIn', 'true');
-    localStorage.setItem('userRole', userData.role);
+    localStorage.setItem('userRole', normalizedRole);
     localStorage.setItem('userId', userData.id);
     localStorage.setItem('userInfo', JSON.stringify({
       name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email,
       empId: userData.empId,
       clientId: userData.clientId,
-      role: userData.role,
+      role: normalizedRole,
       project: userData.project || null
     }));
-    setUser(userData);
+    setUser(normalizedUserData);
     setIsAuthenticated(true);
   };
 

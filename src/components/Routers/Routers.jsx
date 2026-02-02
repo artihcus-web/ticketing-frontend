@@ -42,10 +42,14 @@ ProtectedRoute.propTypes = {
 
 // Utility to get dashboard route for a given role
 function getDashboardRouteForRole(role) {
-  switch (role) {
+  const normalizedRole = role ? role.toLowerCase().trim().replace(/\s+/g, '_') : '';
+
+  switch (normalizedRole) {
     case 'admin':
       return '/admin';
     case 'client_head':
+    case 'clienthead':
+    case 'client_manager':
       return '/client-head-dashboard';
     case 'client':
       return '/clientdashboard';
@@ -53,6 +57,7 @@ function getDashboardRouteForRole(role) {
       return '/employeedashboard';
     case 'manager':
     case 'project_manager':
+    case 'projectmanager':
       return '/project-manager-dashboard';
     default:
       return '/login';
@@ -67,7 +72,9 @@ function AdminRoute({ children }) {
     return <div>Loading...</div>;
   }
 
-  if (!user || user.role !== 'admin') {
+  const normalizedRole = user?.role?.toLowerCase().trim().replace(/\s+/g, '_');
+
+  if (!user || normalizedRole !== 'admin') {
     // Redirect to correct dashboard for their role
     return <Navigate to={getDashboardRouteForRole(user?.role)} replace />;
   }
@@ -86,7 +93,9 @@ function EmployeeRoute({ children }) {
     return <div>Loading...</div>;
   }
 
-  if (!user || user.role !== 'employee') {
+  const normalizedRole = user?.role?.toLowerCase().trim().replace(/\s+/g, '_');
+
+  if (!user || normalizedRole !== 'employee') {
     return <Navigate to={getDashboardRouteForRole(user?.role)} replace />;
   }
 
@@ -104,7 +113,9 @@ function ClientHeadRoute({ children }) {
     return <div>Loading...</div>;
   }
 
-  if (!user || user.role !== 'client_head') {
+  const normalizedRole = user?.role?.toLowerCase().trim().replace(/\s+/g, '_');
+
+  if (!user || (normalizedRole !== 'client_head' && normalizedRole !== 'clienthead')) {
     return <Navigate to={getDashboardRouteForRole(user?.role)} replace />;
   }
 
@@ -122,7 +133,9 @@ function ClientRoute({ children }) {
     return <div>Loading...</div>;
   }
 
-  if (!user || user.role !== 'client') {
+  const normalizedRole = user?.role?.toLowerCase().trim().replace(/\s+/g, '_');
+
+  if (!user || normalizedRole !== 'client') {
     return <Navigate to={getDashboardRouteForRole(user?.role)} replace />;
   }
 
@@ -140,7 +153,9 @@ function ProjectManagerRoute({ children }) {
     return <div>Loading...</div>;
   }
 
-  if (!user || (user.role !== 'project_manager' && user.role !== 'manager')) {
+  const normalizedRole = user?.role?.toLowerCase().trim().replace(/\s+/g, '_');
+
+  if (!user || (normalizedRole !== 'project_manager' && normalizedRole !== 'projectmanager' && normalizedRole !== 'manager')) {
     return <Navigate to={getDashboardRouteForRole(user?.role)} replace />;
   }
 

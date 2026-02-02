@@ -88,12 +88,20 @@ function ClientDashboard() {
         const response = await apiRequest('/dashboards/projects', { method: 'GET' });
         if (response.success && response.projects) {
           setProjects(response.projects);
-          if (response.projects.length > 0 && !selectedProjectId) {
-            setSelectedProjectId(response.projects[0].id);
+          if (response.projects.length > 0) {
+            setSelectedProjectId(prev => {
+              if (prev && response.projects.some(p => p.id === prev)) {
+                return prev;
+              }
+              return response.projects[0].id;
+            });
           }
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Error fetching projects:', error);
+        setIsLoading(false);
       }
     };
 
@@ -120,10 +128,8 @@ function ClientDashboard() {
         if (showLoading) {
           setIsLoading(true);
         }
-        const project = projects.find(p => p.id === selectedProjectId);
-        const projectName = project?.name;
-
-        if (!projectName) {
+        const projectName = projects.find(p => p.id === selectedProjectId)?.name;
+        if (!projectName && !selectedProjectId) {
           setTickets([]);
           if (showLoading) {
             setIsLoading(false);
@@ -131,7 +137,11 @@ function ClientDashboard() {
           return;
         }
 
-        const response = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(projectName)}`, {
+        const ticketsUrl = selectedProjectId
+          ? `/dashboards/tickets?projectId=${selectedProjectId}`
+          : `/dashboards/tickets?projectName=${encodeURIComponent(projectName)}`;
+
+        const response = await apiRequest(ticketsUrl, {
           method: 'GET',
         });
 
@@ -444,7 +454,24 @@ function ClientDashboard() {
                   <Menu className="w-6 h-6 text-gray-600" />
                 </button>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900"> {tickets[0]?.project || 'General'}</h1>
+                  {projects.length === 0 ? (
+                    <h1 className="text-2xl font-bold text-gray-900">No Project Assigned</h1>
+                  ) : projects.length === 1 ? (
+                    <h1 className="text-2xl font-bold text-gray-900">Project: {projects[0].name}</h1>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl font-bold text-gray-900">Project:</span>
+                      <select
+                        className="text-2xl font-bold text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        value={selectedProjectId || ''}
+                        onChange={e => setSelectedProjectId(e.target.value)}
+                      >
+                        {projects.map(project => (
+                          <option key={project.id} value={project.id}>{project.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <p className="text-gray-600">Manage your support tickets and communications</p>
                 </div>
               </div>
@@ -585,11 +612,21 @@ function ClientDashboard() {
               </div>
             )}
 
-            {activeTab === 'tickets' && <ClientTickets setActiveTab={setActiveTab} />}
+            {activeTab === 'tickets' && (
+              <ClientTickets
+                setActiveTab={setActiveTab}
+                selectedProjectId={selectedProjectId}
+                selectedProjectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
+              />
+            )}
 
             {activeTab === 'create' && (
               <div className="max-w-auto mx-auto">
-                <Ticketing onTicketCreated={() => setActiveTab('tickets')} />
+                <Ticketing
+                  onTicketCreated={() => setActiveTab('tickets')}
+                  selectedProjectId={selectedProjectId}
+                  selectedProjectName={projects.find(p => p.id === selectedProjectId)?.name || ''}
+                />
               </div>
             )}
 

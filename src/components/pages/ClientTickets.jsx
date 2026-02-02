@@ -76,7 +76,7 @@ function calculateTimes(ticket) {
   return { responseTime, resolutionTime };
 }
 
-const ClientTickets = ({ setActiveTab: _setActiveTab }) => {  // eslint-disable-line no-unused-vars
+const ClientTickets = ({ setActiveTab: _setActiveTab, selectedProjectId, selectedProjectName }) => {  // eslint-disable-line no-unused-vars
   const { user } = useAuth();
   const [ticketsData, setTicketsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,12 +88,12 @@ const ClientTickets = ({ setActiveTab: _setActiveTab }) => {  // eslint-disable-
   const [filterRaisedByEmployee, setFilterRaisedByEmployee] = useState('all');
   const [filterRaisedByClient, setFilterRaisedByClient] = useState('all');
   const [currentUserEmail, setCurrentUserEmail] = useState('');
-  const [selectedProject, setSelectedProject] = useState('VMM');
-  const [userProjects, setUserProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(selectedProjectName || 'VMM');
+  const [userProjects] = useState([]);
   const [_employees, _setEmployees] = useState([]);  // eslint-disable-line no-unused-vars
   const [_clients, _setClients] = useState([]);  // eslint-disable-line no-unused-vars
   const [currentUserData, setCurrentUserData] = useState(null);
-  const [filtersApplied, setFiltersApplied] = useState(false);
+  const [filtersApplied, setFiltersApplied] = useState(true);
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for Newest, 'asc' for Oldest
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
@@ -123,14 +123,7 @@ const ClientTickets = ({ setActiveTab: _setActiveTab }) => {  // eslint-disable-
         if (userResponse.success && userResponse.user) {
           const userData = userResponse.user;
           setCurrentUserData(userData);
-          // Handle project as array or string
-          if (Array.isArray(userData.project)) {
-            setUserProjects(userData.project);
-            setSelectedProject(userData.project[0] || 'VMM');
-          } else {
-            setUserProjects([userData.project || 'VMM']);
-            setSelectedProject(userData.project || 'VMM');
-          }
+          // Projects are managed by the parent Dashboard and passed via props
         }
         try {
           const filterData = sessionStorage.getItem('ticketFilter');
@@ -150,6 +143,12 @@ const ClientTickets = ({ setActiveTab: _setActiveTab }) => {  // eslint-disable-
 
     fetchUserData();
   }, [user]);
+
+  useEffect(() => {
+    if (selectedProjectName) {
+      setSelectedProject(selectedProjectName);
+    }
+  }, [selectedProjectName]);
 
   useEffect(() => {
     if (!selectedProject || !user) return;
@@ -181,7 +180,11 @@ const ClientTickets = ({ setActiveTab: _setActiveTab }) => {  // eslint-disable-
         }
 
         // Fetch tickets
-        const ticketsResponse = await apiRequest(`/dashboards/tickets?projectName=${encodeURIComponent(selectedProject)}`, {
+        const ticketsUrl = selectedProjectId
+          ? `/dashboards/tickets?projectId=${selectedProjectId}`
+          : `/dashboards/tickets?projectName=${encodeURIComponent(selectedProject)}`;
+
+        const ticketsResponse = await apiRequest(ticketsUrl, {
           method: 'GET',
         });
 
@@ -239,7 +242,7 @@ const ClientTickets = ({ setActiveTab: _setActiveTab }) => {  // eslint-disable-
       if (interval) clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [selectedProject, user]);
+  }, [selectedProject, selectedProjectId, user]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -809,3 +812,9 @@ function _downloadTicketsAsExcel(tickets) {  // eslint-disable-line no-unused-va
   XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
   XLSX.writeFile(wb, 'tickets_export.xlsx');
 }
+
+ClientTickets.propTypes = {
+  setActiveTab: PropTypes.func,
+  selectedProjectId: PropTypes.string,
+  selectedProjectName: PropTypes.string
+};

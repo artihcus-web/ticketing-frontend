@@ -29,7 +29,7 @@ function Projects() {
         let filteredProjects = response.projects;
 
         // For employees and managers, show only projects they are assigned to
-        if (user && (user.role === 'employee' || user.role === 'manager' || user.role === 'project_manager')) {
+        if (user && (user.role === 'employee' || user.role === 'manager' || user.role === 'project_manager' || user.role === 'client')) {
           filteredProjects = response.projects.filter(project => {
             // Check if user is in the members list
             return project.members?.some(member =>

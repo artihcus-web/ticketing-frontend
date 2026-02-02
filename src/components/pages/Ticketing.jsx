@@ -175,7 +175,8 @@ function Client({ selectedProjectId, selectedProjectName }) {
     const fetchFormConfig = async () => {
       setDropdownsLoading(true);
       try {
-        const response = await apiRequest('/tickets/config/formConfig', {
+        const projectName = selectedProjectName || (user && user.project) || 'General';
+        const response = await apiRequest(`/tickets/config/formConfig?projectName=${encodeURIComponent(projectName)}`, {
           method: 'GET',
         });
         if (response.success && response.formConfig) {
@@ -188,7 +189,7 @@ function Client({ selectedProjectId, selectedProjectName }) {
       }
     };
     fetchFormConfig();
-  }, []);
+  }, [selectedProjectName, user]);
 
   // Fetch cascading options from formConfig
   const moduleOptions = formConfig?.moduleOptions || [];
@@ -209,15 +210,14 @@ function Client({ selectedProjectId, selectedProjectName }) {
           }
           name = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
           const email = user.email || '';
-          const userProject = user.project || 'General';
-          const userRole = user.role || '';
+          // Prioritize selectedProjectName from props, then user's default project
+          const activeProject = selectedProjectName || user.project || 'General';
 
-          // If client or client_head, force project to user's project, but preserve name/email
           setFormData(prev => ({
             ...prev,
             name: name,
             email: email,
-            project: (userRole === 'client' || userRole === 'client_head') ? userProject : (selectedProjectName || 'General'),
+            project: activeProject,
             subject: '',
             priority: 'Medium',
             description: '',
@@ -242,13 +242,14 @@ function Client({ selectedProjectId, selectedProjectName }) {
               name = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
               const email = userData.email || '';
               const userProject = userData.project || 'General';
-              const userRole = userData.role || '';
+
+              const activeProject = selectedProjectName || userProject || 'General';
 
               setFormData(prev => ({
                 ...prev,
                 name: name,
                 email: email,
-                project: (userRole === 'client' || userRole === 'client_head') ? userProject : (selectedProjectName || 'General'),
+                project: activeProject,
                 subject: '',
                 priority: 'Medium',
                 description: '',
