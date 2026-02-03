@@ -447,8 +447,10 @@ function Client({ selectedProjectId, selectedProjectName }) {
       );
       console.log('Processed attachments:', processedFiles);
 
-      // Build the ticket data
+      // Build the ticket data - include all formData fields (including custom fields)
       const ticketData = {
+        ...formData, // Spread all fields including custom ones
+        // Override with specific values to ensure correct mapping
         subject: formData.subject,
         customer: formData.name,
         email: formData.email,
@@ -461,8 +463,16 @@ function Client({ selectedProjectId, selectedProjectName }) {
         priority: formData.priority,
         description: formData.description,
         attachments: processedFiles,
-        reportedBy: reportedBy
+        reportedBy: reportedBy,
       };
+
+      // Only remove 'name' if it's NOT a custom field in formConfig
+      const customFieldIds = (formConfig?.fields || []).map(f => f.id);
+      if (!customFieldIds.includes('name')) {
+        // 'name' is not a custom field, so remove it (it's already mapped to 'customer')
+        delete ticketData.name;
+      }
+
       console.log('Final ticketData to submit:', ticketData);
 
       // Create ticket via backend API

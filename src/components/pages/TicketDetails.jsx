@@ -97,6 +97,8 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
   const [, setDetailsError] = useState('');  // Used for error handling
   const [, setResolutionStatus] = useState('');  // Used for status tracking
   const [, setSelectedRequester] = useState('');  // Used at line 234
+  // Add state for custom field values (dynamic fields from formConfig)
+  const [customFieldValues, setCustomFieldValues] = useState({});
   // Add a ref for ReactQuill to access the editor
   const quillRef = useRef(null);
   const { user } = useAuth();
@@ -151,14 +153,14 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
 
     fetchTicket();
 
-    // Poll for updates every 30 seconds, only when tab is visible
+    // Poll for updates every 2 minutes, only when tab is visible
     const startPolling = () => {
       if (document.visibilityState === 'visible') {
         interval = setInterval(() => {
           if (document.visibilityState === 'visible') {
             fetchTicket();
           }
-        }, 30000);
+        }, 120000); // 2 minutes instead of 30 seconds
       }
     };
 
@@ -169,7 +171,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
         if (!interval) {
           startPolling();
         }
-        fetchTicket();
+        // Removed immediate fetch on visibility change to prevent constant reloading
       } else {
         if (interval) {
           clearInterval(interval);
@@ -193,7 +195,7 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     }
   }, [ticket?.comments?.length]);
 
-  // Add state for editing fields
+  // Add state for editing fields - only update when these specific fields change
   useEffect(() => {
     if (ticket) {
       setEditFields({
@@ -204,8 +206,9 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       setResolutionText(ticket.resolution || '');
       setResolutionStatus(ticket.status || '');
     }
-  }, [ticket]);
+  }, [ticket?.priority, ticket?.status, ticket?.category, ticket?.resolution]);
 
+  // Only fetch employees and set user role when ticket ID or user changes, not on every ticket update
   useEffect(() => {
     const fetchEmployees = async () => {
       if (!ticket?.id) return;
@@ -228,30 +231,27 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       }
     };
 
-    if (ticket) {
+    if (ticket?.id) {
       fetchEmployees();
-      setSelectedAssignee(ticket.assignedTo?.email || '');
       fetchCurrentUserRole();
-      setSelectedRequester(ticket.email || '');
     }
-  }, [ticket, user]);
+  }, [ticket?.id, user?.email, user?.role]);
 
+  // Separate effect for assignee that only runs when assignment actually changes
   useEffect(() => {
-    const fetchClients = async () => {
-      if (!ticket?.id) return;
-      try {
-        const response = await apiRequest(`/tickets/${ticket.id}/clients`, {
-          method: 'GET',
-        });
-        if (response.success && response.clients) {
-          setClientMembers(response.clients);
-        }
-      } catch (err) {
-        console.error('Error fetching clients:', err);
-      }
-    };
-    fetchClients();
-  }, [ticket]);
+    if (ticket?.assignedTo?.email) {
+      setSelectedAssignee(ticket.assignedTo.email);
+    }
+  }, [ticket?.assignedTo?.email]);
+
+  // Separate effect for requester email
+  useEffect(() => {
+    if (ticket?.email) {
+      setSelectedRequester(ticket.email);
+    }
+  }, [ticket?.email]);
+
+  // REMOVED: This was a duplicate - fetchClientMembers is already called below at line 806-821
 
 
 
@@ -419,6 +419,16 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       if (onlyAssigneeChanged) {
         console.log('[DEBUG] handleSaveDetails: onlyAssigneeChanged', { ticketId: ticket.id, updates, selectedAssignee });
         await onAssign(ticket.id, updates.assignedTo.email);
+
+        // Refresh ticket to show the updated assignment
+        const ticketResponse = await apiRequest(`/tickets/${ticket.id}`, {
+          method: 'GET',
+        });
+        if (ticketResponse.success) {
+          setTicket(ticketResponse.ticket);
+          setSelectedAssignee(ticketResponse.ticket.assignedTo?.email || '');
+        }
+
         setIsSaving(false);
         return;
       }
@@ -426,6 +436,20 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       if (editReportedBy !== ticket.reportedBy) {
         updates.reportedBy = editReportedBy;
         commentMsg.push(`Reported by changed to ${editReportedBy}`);
+      }
+
+      // Custom fields from formConfig
+      if (formConfig?.fields) {
+        formConfig.fields
+          .filter(f => !['module', 'category', 'subCategory', 'priority', 'subject', 'description', 'reportedBy', 'typeOfIssue'].includes(f.id))
+          .forEach(field => {
+            const newValue = customFieldValues[field.id] || '';
+            const oldValue = ticket[field.id] || '';
+            if (newValue !== oldValue) {
+              updates[field.id] = newValue;
+              commentMsg.push(`${field.label} changed to ${newValue}`);
+            }
+          });
       }
 
       if (Object.keys(updates).length > 0) {
@@ -768,22 +792,39 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
     });
   };
 
+  // Fetch form config based on ticket's project name
   useEffect(() => {
     const fetchConfig = async () => {
+      // Only fetch config once we have the ticket data
+      if (!ticket?.project) return;
+
       try {
-        const response = await apiRequest('/tickets/config/formConfig', {
+        const projectName = Array.isArray(ticket.project) ? ticket.project[0] : ticket.project;
+        const response = await apiRequest(`/tickets/config/formConfig?projectName=${encodeURIComponent(projectName)}`, {
           method: 'GET',
         });
         if (response.success && response.formConfig) {
           setFormConfig(response.formConfig);
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        console.error('Error fetching form config:', error);
+        // Fallback to general config if project-specific config fails
+        try {
+          const response = await apiRequest('/tickets/config/formConfig', {
+            method: 'GET',
+          });
+          if (response.success && response.formConfig) {
+            setFormConfig(response.formConfig);
+          }
+        } catch {
+          // ignore
+        }
       }
     };
     fetchConfig();
-  }, []);
+  }, [ticket?.project]);
 
+  // Only update edit fields when these specific properties change, not on every ticket update
   useEffect(() => {
     if (ticket && formConfig) {
       setEditModule(ticket.module || '');
@@ -791,7 +832,20 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
       setEditSubCategory(ticket.subCategory || '');
       setEditTypeOfIssue(ticket.typeOfIssue || '');
     }
-  }, [ticket, formConfig]);
+  }, [ticket?.module, ticket?.category, ticket?.subCategory, ticket?.typeOfIssue, formConfig]);
+
+  // Initialize custom field values from ticket and formConfig
+  useEffect(() => {
+    if (ticket && formConfig?.fields) {
+      const customValues = {};
+      formConfig.fields
+        .filter(f => !['module', 'category', 'subCategory', 'priority', 'subject', 'description', 'reportedBy', 'typeOfIssue'].includes(f.id))
+        .forEach(field => {
+          customValues[field.id] = ticket[field.id] || '';
+        });
+      setCustomFieldValues(customValues);
+    }
+  }, [ticket?.id, formConfig]);
 
   useEffect(() => {
     const fetchClientMembers = async () => {
@@ -1353,8 +1407,68 @@ const TicketDetails = ({ ticketId, onBack, onAssign }) => {
                           <option key={member.email} value={member.email}>{member.name || member.email}</option>
                         ))}
                       </select>
-                    )}
-                  </div>
+                    )}\n                  </div>
+                  {/* Debug logging for custom fields */}
+                  {console.log('[DEBUG] Custom Fields Check:', {
+                    hasFormConfig: !!formConfig,
+                    hasFields: !!formConfig?.fields,
+                    formConfigFields: formConfig?.fields,
+                    ticketData: ticket,
+                    customFieldsToRender: formConfig?.fields?.filter(f => !['module', 'category', 'subCategory', 'priority', 'subject', 'description', 'reportedBy', 'typeOfIssue'].includes(f.id))
+                  })}
+                  {/* Dynamic Custom Fields from Form Config */}
+                  {formConfig?.fields
+                    ?.filter(f => !['module', 'category', 'subCategory', 'priority', 'subject', 'description', 'reportedBy', 'typeOfIssue'].includes(f.id))
+                    .map(field => (
+                      <div key={field.id} className="mb-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">
+                          {field.label}{field.required && ' *'}
+                        </label>
+                        {!isEditMode ? (
+                          <div className="text-gray-900 text-base min-h-[1.5em]">
+                            {ticket?.[field.id] || <span className="text-gray-400">(none)</span>}
+                          </div>
+                        ) : (
+                          <>
+                            {field.type === 'dropdown' ? (
+                              <select
+                                className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-200 bg-white text-gray-700"
+                                value={customFieldValues[field.id] || ''}
+                                onChange={e => setCustomFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                disabled={isSaving}
+                              >
+                                <option value="">Select {field.label}</option>
+                                {(field.options || []).map(opt => (
+                                  <option
+                                    key={typeof opt === 'object' ? opt.value : opt}
+                                    value={typeof opt === 'object' ? opt.value : opt}
+                                  >
+                                    {typeof opt === 'object' ? opt.value : opt}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : field.type === 'textarea' ? (
+                              <textarea
+                                className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-200 bg-white text-gray-700"
+                                value={customFieldValues[field.id] || ''}
+                                onChange={e => setCustomFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                rows={3}
+                                disabled={isSaving}
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-200 bg-white text-gray-700"
+                                value={customFieldValues[field.id] || ''}
+                                onChange={e => setCustomFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                disabled={isSaving}
+                              />
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))
+                  }
                 </div>
               </div>
               {/* Restore Description section below the details grid */}
